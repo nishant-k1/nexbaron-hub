@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { AuthProvider, useAuth } from "@/auth/auth-context"
 import { ThemeProvider, DivisionProvider } from "@/theme/theme-provider"
+import type { Division } from "@/lib/api"
 import AppLayout from "@/components/layout/AppLayout"
 import Dashboard from "@/pages/Dashboard"
 import Orders from "@/pages/Orders"
@@ -8,13 +9,27 @@ import Progress from "@/pages/Progress"
 import Settings from "@/pages/Settings"
 import Login from "@/pages/Login"
 
+function divisionFromPath(pathname: string): Division | null {
+  if (pathname.startsWith("/print")) return "print"
+  if (pathname.startsWith("/digital")) return "digital"
+  return null
+}
+
+function DivisionWrapper({ children }: { children: React.ReactNode }) {
+  const location = useLocation()
+  const division = divisionFromPath(location.pathname)
+  return <DivisionProvider division={division}>{children}</DivisionProvider>
+}
+
 function HubRoutes() {
   const { initialized, user } = useAuth()
 
   if (!initialized) {
-    return <div className="min-h-screen flex items-center justify-center bg-neutral-bg">
-      <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-    </div>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-bg">
+        <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
   }
 
   return (
@@ -36,9 +51,9 @@ export default function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <DivisionProvider division={null}>
+          <DivisionWrapper>
             <HubRoutes />
-          </DivisionProvider>
+          </DivisionWrapper>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

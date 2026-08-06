@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/auth/auth-context"
-import { apiRequest, type AuthUser, type Division } from "@/lib/api"
+import { apiRequest, type AuthUser } from "@/lib/api"
 import { getGoogleClientId, loadGoogleGis, triggerGoogleSignIn } from "@/lib/google"
 
 type Channel = "email" | "phone"
@@ -22,7 +22,7 @@ const COPY: Record<Division, { title: string; tagline: string }> = {
 }
 
 export default function Login() {
-  const { division } = useParams<{ division: Division }>()
+  const { division } = useParams<{ division: string }>()
   const { signIn } = useAuth()
   const navigate = useNavigate()
   const [channel, setChannel] = useState<Channel>("email")
@@ -33,7 +33,7 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [devCode, setDevCode] = useState<string | null>(null)
 
-  if (!division) return null
+  if (division !== "digital" && division !== "print") return null
   const copy = COPY[division]
   const googleClientId = getGoogleClientId(division)
   const isEmail = channel === "email"

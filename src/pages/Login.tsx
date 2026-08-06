@@ -1,8 +1,22 @@
 import { useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { Mail, Phone, ArrowRight } from "lucide-react"
+import { BrandMark } from "@/components/brand/BrandMark"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useAuth } from "@/auth/auth-context"
 import { apiRequest, type AuthUser, type Division } from "@/lib/api"
+
+const COPY: Record<Division, { title: string; tagline: string }> = {
+  digital: {
+    title: "Digital Hub",
+    tagline: "Your website, your plan, your growth — all in one place.",
+  },
+  print: {
+    title: "Print Hub",
+    tagline: "Track orders, download invoices, manage your print business.",
+  },
+}
 
 export default function Login() {
   const { division } = useParams<{ division: Division }>()
@@ -16,6 +30,7 @@ export default function Login() {
   const [devCode, setDevCode] = useState<string | null>(null)
 
   if (!division) return null
+  const copy = COPY[division]
 
   const requestOtp = async () => {
     if (!email.trim()) { setError("Please enter your email."); return }
@@ -30,7 +45,7 @@ export default function Login() {
   }
 
   const verifyCode = async () => {
-    if (!code.trim()) { setError("Please enter the code."); return }
+    if (!code.trim()) { setError("Please enter the verification code."); return }
     setLoading(true); setError(null)
     try {
       const data = await apiRequest<{ token: string; user: AuthUser }>(`/${division}/auth/verify`, {
@@ -43,43 +58,94 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-bg p-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-heading">Nexbaron Hub</h1>
-          <p className="text-sm text-muted mt-2">Sign in to your {division} account</p>
+    <div className="min-h-screen grid lg:grid-cols-2 bg-neutral-bg">
+      {/* Brand panel */}
+      <div className="relative hidden lg:flex flex-col justify-between p-10 overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-[0.15]"
+          style={{
+            background:
+              division === "digital"
+                ? "radial-gradient(circle at 20% 20%, #2dd4bf 0%, transparent 55%), radial-gradient(circle at 80% 80%, #22d3ee 0%, transparent 50%)"
+                : "radial-gradient(circle at 30% 20%, #fbbf24 0%, transparent 55%), radial-gradient(circle at 70% 85%, #f97316 0%, transparent 50%)",
+          }}
+        />
+        <div className="relative flex items-center gap-3">
+          <BrandMark size={44} />
+          <span className="text-xl font-bold text-heading">Nexbaron</span>
         </div>
 
-        {error && <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">{error}</div>}
-
-        <div className="p-6 rounded-xl bg-neutral-surface border border-border space-y-4">
-          {!otpSent ? (
-            <>
-              <label className="text-xs font-medium text-heading block">Email address</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="you@business.com"
-                className="w-full px-3 py-2.5 rounded-lg bg-neutral-bg border border-border text-heading text-sm placeholder:text-muted focus:outline-none focus:border-accent"
-                onKeyDown={e => e.key === "Enter" && requestOtp()} />
-              <button onClick={requestOtp} disabled={loading}
-                className="w-full py-2.5 rounded-lg bg-accent text-accent-fg font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50">
-                {loading ? "Sending..." : <><Mail className="h-4 w-4" /> Send verification code</>}
-              </button>
-            </>
-          ) : (
-            <>
-              <label className="text-xs font-medium text-heading block">Verification code</label>
-              <input type="text" value={code} onChange={e => setCode(e.target.value)}
-                placeholder="000000" inputMode="numeric"
-                className="w-full px-3 py-2.5 rounded-lg bg-neutral-bg border border-border text-heading text-sm text-center tracking-widest placeholder:text-muted focus:outline-none focus:border-accent"
-                onKeyDown={e => e.key === "Enter" && verifyCode()} />
-              {devCode && <p className="text-xs text-accent">Dev: {devCode}</p>}
-              <button onClick={verifyCode} disabled={loading}
-                className="w-full py-2.5 rounded-lg bg-accent text-accent-fg font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50">
-                {loading ? "Verifying..." : <>Verify &amp; Sign In <ArrowRight className="h-4 w-4" /></>}
-              </button>
-            </>
-          )}
+        <div className="relative">
+          <h1 className="text-4xl font-bold text-heading leading-tight mb-4">{copy.title}</h1>
+          <p className="text-lg text-muted max-w-sm">{copy.tagline}</p>
         </div>
+
+        <p className="relative text-xs text-muted">Nexbaron Hub · Customer portal</p>
+      </div>
+
+      {/* Form panel */}
+      <div className="flex flex-col px-6 py-8 lg:px-16">
+        <div className="flex items-center gap-3 lg:hidden mb-10">
+          <BrandMark size={40} />
+          <span className="text-lg font-bold text-heading">
+            Nexbaron Hub <span className="capitalize text-accent">· {division}</span>
+          </span>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-sm">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-heading mb-1">Sign in</h2>
+              <p className="text-sm text-muted">Access your {division} account.</p>
+            </div>
+
+            <form onSubmit={e => { e.preventDefault(); otpSent ? verifyCode() : requestOtp() }} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@business.com"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); if (otpSent) { setOtpSent(false); setDevCode(null) } }}
+                  disabled={otpSent}
+                  required
+                />
+              </div>
+
+              {otpSent && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="code">Verification code</Label>
+                  <Input
+                    id="code"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="000000"
+                    className="text-center tracking-widest"
+                    value={code}
+                    onChange={e => setCode(e.target.value)}
+                    autoFocus
+                    required
+                  />
+                  {devCode && (
+                    <p className="text-xs text-accent mt-1">
+                      Dev mode code: <span className="font-mono font-bold">{devCode}</span>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {error && <p className="text-sm text-red-400">{error}</p>}
+
+              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                {loading ? "Please wait…" : otpSent ? "Verify & Sign In" : "Send verification code"}
+              </Button>
+            </form>
+          </div>
+        </div>
+
+        <p className="text-center lg:hidden text-xs text-muted">Nexbaron Hub · Customer portal</p>
       </div>
     </div>
   )

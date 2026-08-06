@@ -8,8 +8,6 @@ import { useAuth } from "@/auth/auth-context"
 import { apiRequest, type AuthUser } from "@/lib/api"
 import { getGoogleClientId, loadGoogleGis, triggerGoogleSignIn } from "@/lib/google"
 
-type Channel = "email" | "phone"
-
 const COPY: Record<"digital" | "print", { title: string; tagline: string }> = {
   digital: {
     title: "Digital Hub",
@@ -25,8 +23,7 @@ export default function Login() {
   const { division } = useParams<{ division: string }>()
   const { signIn } = useAuth()
   const navigate = useNavigate()
-  const [channel, setChannel] = useState<Channel>("email")
-  const [target, setTarget] = useState("")
+  const [email, setEmail] = useState("")
   const [code, setCode] = useState("")
   const [otpSent, setOtpSent] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -36,7 +33,6 @@ export default function Login() {
   if (division !== "digital" && division !== "print") return null
   const copy = COPY[division]
   const googleClientId = getGoogleClientId(division)
-  const isEmail = channel === "email"
 
   useEffect(() => { loadGoogleGis() }, [])
 
@@ -59,14 +55,11 @@ export default function Login() {
   }
 
   const requestOtp = async () => {
-    if (!target.trim()) {
-      setError(isEmail ? "Please enter your email." : "Please enter your phone number.")
-      return
-    }
+    if (!email.trim()) { setError("Please enter your email."); return }
     setLoading(true); setError(null)
     try {
       const data = await apiRequest<{ devCode?: string }>(`/${division}/auth/request-otp`, {
-        method: "POST", body: JSON.stringify({ channel, target, name: "" }),
+        method: "POST", body: JSON.stringify({ channel: "email", target: email, name: "" }),
       }, division)
       setOtpSent(true); setDevCode(data.devCode ?? null)
     } catch (e) { setError(e instanceof Error ? e.message : "Could not send code.") }
@@ -78,7 +71,7 @@ export default function Login() {
     setLoading(true); setError(null)
     try {
       const data = await apiRequest<{ token: string; user: AuthUser }>(`/${division}/auth/verify`, {
-        method: "POST", body: JSON.stringify({ channel, target, code, name: "" }),
+        method: "POST", body: JSON.stringify({ channel: "email", target: email, code, name: "" }),
       }, division)
       signIn(data.token, data.user)
       navigate(`/${division}`, { replace: true })
@@ -141,33 +134,15 @@ export default function Login() {
                 </>
               )}
 
-              {/* Channel toggle */}
-              <div className="flex rounded-lg bg-neutral-surface border border-border p-1">
-                <button
-                  type="button"
-                  onClick={() => { setChannel("email"); setTarget(""); setOtpSent(false); setDevCode(null) }}
-                  className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors ${channel === "email" ? "bg-accent text-accent-fg" : "text-muted hover:text-heading"}`}
-                >
-                  Email
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setChannel("phone"); setTarget(""); setOtpSent(false); setDevCode(null) }}
-                  className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-colors ${channel === "phone" ? "bg-accent text-accent-fg" : "text-muted hover:text-heading"}`}
-                >
-                  Phone
-                </button>
-              </div>
-
               <div className="space-y-1.5">
-                <Label htmlFor="target">{isEmail ? "Email address" : "Phone number"}</Label>
+                <Label htmlFor="email">Email address</Label>
                 <Input
-                  id="target"
-                  type={isEmail ? "email" : "tel"}
-                  autoComplete={isEmail ? "email" : "tel"}
-                  placeholder={isEmail ? "you@business.com" : "10-digit mobile number"}
-                  value={target}
-                  onChange={e => { setTarget(e.target.value); if (otpSent) { setOtpSent(false); setDevCode(null) } }}
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@business.com"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); if (otpSent) { setOtpSent(false); setDevCode(null) } }}
                   disabled={otpSent}
                   required
                 />

@@ -59,7 +59,7 @@ export default function Login() {
     setLoading(true); setError(null)
     try {
       const data = await apiRequest<{ devCode?: string }>(`/${division}/auth/request-otp`, {
-        method: "POST", body: JSON.stringify({ channel: "email", target: email, name: "" }),
+        method: "POST", body: JSON.stringify({ channel: "email", target: email, name: "", purpose: "login" }),
       }, division)
       setOtpSent(true); setDevCode(data.devCode ?? null)
     } catch (e) { setError(e instanceof Error ? e.message : "Could not send code.") }
@@ -71,7 +71,7 @@ export default function Login() {
     setLoading(true); setError(null)
     try {
       const data = await apiRequest<{ token: string; user: AuthUser }>(`/${division}/auth/verify`, {
-        method: "POST", body: JSON.stringify({ channel: "email", target: email, code, name: "" }),
+        method: "POST", body: JSON.stringify({ channel: "email", target: email, code, name: "", purpose: "login" }),
       }, division)
       signIn(data.token, data.user)
       navigate(`/${division}`, { replace: true })

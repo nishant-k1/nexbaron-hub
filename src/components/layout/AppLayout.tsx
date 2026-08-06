@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
-import { LayoutDashboard, FileText, Receipt, Settings, LogOut, Cpu, Printer, User } from "lucide-react"
+import { LayoutDashboard, FileText, Receipt, Settings, LogOut, Cpu, Printer, Moon, Sun } from "lucide-react"
 import { useAuth } from "@/auth/auth-context"
-import { useDivision } from "@/theme/theme-provider"
+import { useDivision, useTheme } from "@/theme/theme-provider"
 import { cn } from "@/lib/cn"
 
 const PAGE_TITLES: Record<string, string> = {
@@ -11,6 +11,7 @@ const PAGE_TITLES: Record<string, string> = {
 export default function AppLayout() {
   const { user, signOut } = useAuth()
   const division = useDivision()
+  const { mode, toggle } = useTheme()
   const location = useLocation()
   const isPrint = division === "print"
   const accent = isPrint ? "amber" : "teal"
@@ -53,7 +54,15 @@ export default function AppLayout() {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-border">
+        <div className="p-3 border-t border-border space-y-2">
+          <button
+            onClick={toggle}
+            className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-muted hover:text-heading hover:bg-white/5"
+          >
+            {mode === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {mode === "dark" ? "Light mode" : "Dark mode"}
+          </button>
+
           <div className="flex items-center gap-3 px-2 py-2">
             <div className="w-8 h-8 rounded-full bg-accent/15 text-accent flex items-center justify-center text-xs font-bold">
               {initials}

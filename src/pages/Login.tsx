@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { BrandMark } from "@/components/brand/BrandMark"
 import { Button } from "@/components/ui/button"
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/auth/auth-context"
 import { apiRequest, type AuthUser, type Division } from "@/lib/api"
+import { getGoogleClientId, loadGoogleGis, triggerGoogleSignIn } from "@/lib/google"
 
 const COPY: Record<Division, { title: string; tagline: string }> = {
   digital: {
@@ -31,6 +32,28 @@ export default function Login() {
 
   if (!division) return null
   const copy = COPY[division]
+  const googleClientId = getGoogleClientId(division)
+
+  // Preload Google GIS on mount
+  useEffect(() => { loadGoogleGis() }, [])
+
+  const handleGoogleSignIn = async () => {
+    if (!googleClientId) { setError("Google sign-in is not configured."); return }
+    setLoading(true); setError(null)
+    try {
+      const credential = await triggerGoogleSignIn(googleClientId)
+      if (!credential) return // prompt couldn't display, button rendered
+      const data = await apiRequest<{ token: string; user: AuthUser }>(
+        `/${division}/auth/google`,
+        { method: "POST", body: JSON.stringify({ credential }) },
+        division,
+      )
+      signIn(data.token, data.user)
+      navigate(`/${division}`, { replace: true })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Google sign-in failed.")
+    } finally { setLoading(false) }
+  }
 
   const requestOtp = async () => {
     if (!email.trim()) { setError("Please enter your email."); return }
@@ -100,6 +123,19 @@ export default function Login() {
             </div>
 
             <form onSubmit={e => { e.preventDefault(); otpSent ? verifyCode() : requestOtp() }} className="space-y-4">
+              {googleClientId && (
+                <>
+                  <Button type="button" className="w-full" size="lg" onClick={handleGoogleSignIn} disabled={loading}>
+                    <span className="text-base leading-none font-bold mr-2">G</span>
+                    Continue with Google
+                  </Button>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-[10px] font-mono text-muted">OR</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                </>
+              )}
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email address</Label>
                 <Input

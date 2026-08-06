@@ -7,9 +7,9 @@
   </defs>
   <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#tile)"/>
   <rect x="7" y="7" width="50" height="50" rx="12" fill="#020617"/>
-  <g fill="none" stroke="#ffffff" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M24 14 V50"/>
-    <path d="M40 14 V50"/>
-    <path d="M24 14 L40 50"/>
+  <g fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 16 V48"/>
+    <path d="M44 16 V48"/>
+    <path d="M20 16 L44 48"/>
   </g>
 </svg>

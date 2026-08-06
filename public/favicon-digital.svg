@@ -10,6 +10,6 @@
   <g fill="none" stroke="#ffffff" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M24 14 V50"/>
     <path d="M40 14 V50"/>
-    <path d="M24 50 L40 14"/>
+    <path d="M24 14 L40 50"/>
   </g>
 </svg>

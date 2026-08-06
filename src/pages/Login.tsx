@@ -10,7 +10,7 @@ import { getGoogleClientId, loadGoogleGis, triggerGoogleSignIn } from "@/lib/goo
 
 type Channel = "email" | "phone"
 
-const COPY: Record<Division, { title: string; tagline: string }> = {
+const COPY: Record<"digital" | "print", { title: string; tagline: string }> = {
   digital: {
     title: "Digital Hub",
     tagline: "Your website, your plan, your growth — all in one place.",

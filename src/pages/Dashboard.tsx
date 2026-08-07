@@ -255,9 +255,18 @@ export default function Dashboard() {
               if (!division) return
               setPaying(true)
               const body = JSON.stringify({ planId, selections: { planId, plans: {} } })
-              apiRequest<{ razorpay: { orderId: string }; razorpayKeyId: string; amount: number }>(
+              apiRequest<{ razorpayOrderId: string; razorpayKeyId: string; amount: number; devMode?: boolean }>(
                 '/' + division + '/payments/create-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }, division)
-                .then(order => {
+                .then(async order => {
+                  if (order.devMode) {
+                    // Dev mode: skip Razorpay, simulate success
+                    await apiRequest('/' + division + '/payments/verify', {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ razorpay_order_id: order.razorpayOrderId, razorpay_payment_id: 'dev_payment', razorpay_signature: 'dev_signature' }),
+                    }, division)
+                    window.location.reload()
+                    return
+                  }
                   new (window as any).Razorpay({
                     key: order.razorpayKeyId, amount: order.amount * 100, currency: 'INR',
                     name: 'Nexbaron ' + (division === 'digital' ? 'Digital' : 'Print'),

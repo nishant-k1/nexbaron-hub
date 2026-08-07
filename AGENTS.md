@@ -39,3 +39,7 @@ CSS-variable tokens (`--accent-color`, `--accent`, `--border`, `--bg`, `--headin
 ## Git
 
 Branch `main`, imperative feature-sized commits.
+
+### Brand Logo
+
+The official Nexbaron logo is an NX monogram — two vertical strokes + diagonal inside a rounded square with gradient border. Source: `nexbaron-web/public/icon.svg`. Digital = teal gradient, Print = amber gradient. Never use a plain "N" or text-based fallback.

@@ -21,7 +21,7 @@ const COPY: Record<"digital" | "print", { title: string; tagline: string }> = {
 
 export default function Login() {
   const { division } = useParams<{ division: string }>()
-  const { signIn } = useAuth()
+  const { signIn, user, initialized } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState("")
   const [code, setCode] = useState("")
@@ -31,6 +31,13 @@ export default function Login() {
   const [devCode, setDevCode] = useState<string | null>(null)
 
   if (division !== "digital" && division !== "print") return null
+
+  // Already logged in — redirect to dashboard
+  if (initialized && user) {
+    navigate(`/${division}`, { replace: true })
+    return null
+  }
+
   const copy = COPY[division]
   const googleClientId = getGoogleClientId(division)
 

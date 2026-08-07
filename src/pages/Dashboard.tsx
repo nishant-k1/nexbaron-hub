@@ -13,7 +13,6 @@ import {
   Sparkles,
   Package,
   ShoppingBag,
-  ArrowRight,
   Loader2,
 } from "lucide-react"
 

@@ -254,7 +254,7 @@ export default function Dashboard() {
             <button onClick={() => {
               if (!division) return
               setPaying(true)
-              const body = JSON.stringify({ planId, oneTime: totalOneTime, monthly: totalMonthly })
+              const body = JSON.stringify({ planId, selections: { planId, plans: {} } })
               apiRequest<{ razorpay: { orderId: string }; razorpayKeyId: string; amount: number }>(
                 '/' + division + '/payments/create-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }, division)
                 .then(order => {

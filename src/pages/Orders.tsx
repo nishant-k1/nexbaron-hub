@@ -1,16 +1,17 @@
-import { FileText, Loader2, ExternalLink } from "lucide-react";
+import { FileText, Loader2, ExternalLink, IndianRupee } from "lucide-react";
 import { useEffect, useState } from "react";
-
 import { apiRequest } from "@/lib/api";
 import { useDivision } from "@/theme/theme-provider";
 
-interface Order {
-  _id: string;
-  plan?: string;
-  amount?: number;
-  status?: string;
-  createdAt: string;
-}
+interface Order { _id: string; plan?: string; amount?: number; status?: string; createdAt: string }
+
+const MONEY = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+
+const STATUS: Record<string, string> = {
+  paid: "bg-teal-500/10 text-teal-500", pending: "bg-amber-500/10 text-amber-500",
+  in_progress: "bg-blue-500/10 text-blue-500", delivered: "bg-emerald-500/10 text-emerald-500",
+  cancelled: "bg-red-500/10 text-red-500",
+};
 
 export default function Orders() {
   const division = useDivision();
@@ -19,66 +20,47 @@ export default function Orders() {
 
   useEffect(() => {
     if (!division) return;
-    apiRequest<{ success: boolean; orders?: Order[] }>(`/${division}/payments/orders/mine`, {}, division)
-      .then((data) => setOrders(data.orders || []))
+    apiRequest<{ orders?: Order[] }>(`/${division}/payments/orders/mine`, {}, division)
+      .then((d) => setOrders(d.orders || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [division]);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-heading">My Orders</h1>
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-heading">Orders</h1>
+        <p className="text-sm text-muted mt-0.5">{orders.length} order{orders.length !== 1 ? "s" : ""}</p>
+      </div>
 
       {loading ? (
-        <div className="p-12 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 text-accent animate-spin" />
-        </div>
+        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-accent animate-spin" /></div>
       ) : orders.length === 0 ? (
-        <div className="p-12 rounded-xl bg-neutral-surface border border-border text-center">
-          <FileText className="h-10 w-10 text-muted mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-heading mb-2">No orders yet</h3>
-          <p className="text-sm text-muted mb-4">
-            Your order history will appear here once you purchase a plan.
-          </p>
-          <a
-            href={`https://nexbaron.com/${division}/pricing`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-accent hover:underline"
-          >
-            View plans <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+        <div className="rounded-2xl bg-neutral-surface border border-border p-12 text-center">
+          <FileText className="w-10 h-10 text-muted mx-auto mb-4" />
+          <h3 className="font-semibold text-heading mb-1">No orders yet</h3>
+          <p className="text-sm text-muted">Your purchases will appear here.</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-neutral-surface">
-              <tr className="border-b border-border">
-                <th className="text-left px-4 py-3 text-xs font-mono text-muted uppercase">Plan</th>
-                <th className="text-left px-4 py-3 text-xs font-mono text-muted uppercase">Amount</th>
-                <th className="text-left px-4 py-3 text-xs font-mono text-muted uppercase">Status</th>
-                <th className="text-right px-4 py-3 text-xs font-mono text-muted uppercase">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => (
-                <tr key={order._id} className="border-b border-border hover:bg-neutral-bg transition-colors">
-                  <td className="px-4 py-3 text-heading font-medium">{order.plan || "—"}</td>
-                  <td className="px-4 py-3 text-heading">
-                    {order.amount ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(order.amount) : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-xs px-2 py-0.5 rounded-full border border-border text-muted capitalize">
-                      {order.status || "processing"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-muted text-right">
-                    {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
+          <div className="divide-y divide-border/60">
+            {orders.map((o) => (
+              <div key={o._id} className="flex items-center justify-between px-6 py-4 hover:bg-neutral-bg transition-colors">
+                <div>
+                  <p className="font-medium text-heading">{o.plan || "Order"}</p>
+                  <p className="text-xs text-muted flex items-center gap-1 mt-0.5">
+                    <IndianRupee className="w-3 h-3" />{o.amount ? MONEY.format(o.amount) : "—"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS[o.status || ""] || STATUS.pending}`}>
+                    {(o.status || "pending").replace("_", " ")}
+                  </span>
+                  <span className="text-xs text-muted">{new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

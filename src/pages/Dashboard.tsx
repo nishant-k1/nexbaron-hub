@@ -259,9 +259,9 @@ export default function Dashboard() {
                 '/' + division + '/payments/create-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }, division)
                 .then(order => {
                   new (window as any).Razorpay({
-                    key: order.razorpayKeyId, amount: order.amount, currency: 'INR',
+                    key: order.razorpayKeyId, amount: order.amount * 100, currency: 'INR',
                     name: 'Nexbaron ' + (division === 'digital' ? 'Digital' : 'Print'),
-                    description: planId + ' Plan', order_id: order.razorpay.orderId,
+                    description: planId + ' Plan', order_id: order.razorpayOrderId,
                     handler: async (r: any) => {
                       await apiRequest('/' + division + '/payments/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(r) }, division)
                       window.location.reload()

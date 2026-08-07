@@ -7,6 +7,7 @@ import Dashboard from "@/pages/Dashboard"
 import Orders from "@/pages/Orders"
 import Progress from "@/pages/Progress"
 import Settings from "@/pages/Settings"
+import Chat from "@/pages/Chat"
 import Login from "@/pages/Login"
 
 function divisionFromPath(pathname: string): Division | null {
@@ -40,6 +41,7 @@ function HubRoutes() {
         <Route path="orders" element={<Orders />} />
         <Route path="progress" element={<Progress />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="chat" element={<Chat />} />
       </Route>
       <Route path="*" element={<Navigate to="/digital" replace />} />
     </Routes>

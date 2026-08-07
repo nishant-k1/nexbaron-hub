@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
-import { LayoutDashboard, FileText, Receipt, Settings, LogOut, Cpu, Printer, Moon, Sun } from "lucide-react"
+import { LayoutDashboard, FileText, Receipt, Settings, LogOut, Cpu, Printer, Moon, Sun, MessageCircle } from "lucide-react"
 import { useAuth } from "@/auth/auth-context"
 import { useDivision, useTheme } from "@/theme/theme-provider"
 import { cn } from "@/lib/cn"
@@ -21,6 +21,7 @@ export default function AppLayout() {
     { to: `/${division}/orders`, label: "My Orders", icon: FileText },
     { to: `/${division}/progress`, label: "Progress", icon: Receipt },
     { to: `/${division}/settings`, label: "Settings", icon: Settings },
+    { to: `/${division}/chat`, label: "Chat", icon: MessageCircle },
   ]
 
   const segments = location.pathname.replace(`/${division}`, "").split("/").filter(Boolean)

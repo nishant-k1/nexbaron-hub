@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import {
   Check,
@@ -13,6 +13,8 @@ import {
   Sparkles,
   Package,
   ShoppingBag,
+  ArrowRight,
+  Loader2,
 } from "lucide-react"
 
 import { useAuth } from "@/auth/auth-context"
@@ -67,6 +69,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [enabled, setEnabled] = useState<Set<string>>(new Set())
   const [addOns, setAddOns] = useState<Record<string, number>>({})
+  const [paying, setPaying] = useState(false)
 
   useEffect(() => {
     if (!division) return
@@ -99,6 +102,28 @@ export default function Dashboard() {
       return next
     })
   }
+
+  const handlePay = useCallback(async () => {
+    if (!division) return
+    setPaying(true)
+    try {
+      const body = JSON.stringify({ planId, oneTime: totalOneTime, monthly: totalMonthly })
+      const order = await apiRequest<{ razorpay: { orderId: string }; razorpayKeyId: string; amount: number }>(
+        '/' + division + '/payments/create-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }, division)
+      const rzp = new (window as any).Razorpay({
+        key: order.razorpayKeyId, amount: order.amount, currency: 'INR',
+        name: 'Nexbaron ' + (division === 'digital' ? 'Digital' : 'Print'),
+        description: planId + ' Plan', order_id: order.razorpay.orderId,
+        handler: async (r: any) => {
+          await apiRequest('/' + division + '/payments/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(r) }, division)
+          window.location.reload()
+        },
+        prefill: { name: user?.name || '', email: user?.email || '', contact: user?.phone || '' },
+        theme: { color: division === 'digital' ? '#14b8a6' : '#f59e0b' },
+      })
+      rzp.open()
+    } catch { } finally { setPaying(false) }
+  }, [division, planId, totalOneTime, totalMonthly, user])
 
   if (!plan || loading) {
     return (
@@ -249,10 +274,10 @@ export default function Dashboard() {
               <p className="text-[10px] text-muted">Cancel anytime. Site is yours forever.</p>
             </div>
 
-            <button className="cursor-pointer w-full py-3 bg-accent hover:opacity-90 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-accent/20">
-              <CreditCard className="w-4 h-4" />
-              Pay & Start
-              <ArrowRight className="w-4 h-4" />
+            <button onClick={handlePay} disabled={paying} className="cursor-pointer w-full py-3 bg-accent hover:opacity-90 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-accent/20 disabled:opacity-50">
+              {paying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+              {paying ? "Opening..." : "Pay & Start"}
+              {!paying && <ArrowRight className="w-4 h-4" />}
             </button>
 
             <p className="text-center text-[10px] text-muted mt-3">

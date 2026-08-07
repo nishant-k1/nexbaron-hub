@@ -74,13 +74,14 @@ function getServiceIcon(service: string) {
 export default function Dashboard() {
   const { user } = useAuth()
   const division = useDivision()
+  const [orders, setOrders] = useState<OrderItem[]>([])
 
-  const { data } = useQuery({
-    queryKey: ["orders", division, user?.id],
-    queryFn: () => apiFetch<{ orders: OrderItem[] }>(division!, "/orders/mine"),
-    enabled: !!division,
-  })
-  const orders: OrderItem[] = data?.orders ?? []
+  useEffect(() => {
+    if (!division) return
+    apiRequest<{ orders: OrderItem[] }>('/' + division + '/payments/orders/mine', {}, division)
+      .then((data) => setOrders(data.orders ?? []))
+      .catch(() => setOrders([]))
+  }, [division])
 
   const activeOrders = orders.filter((o) => o.status !== "cancelled")
   const hasOrders = activeOrders.length > 0

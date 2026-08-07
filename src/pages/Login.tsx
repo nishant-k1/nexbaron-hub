@@ -134,7 +134,7 @@ export default function Login() {
             <form onSubmit={e => { e.preventDefault(); otpSent ? verifyCode() : requestOtp() }} className="space-y-4">
               {googleClientId && (
                 <>
-                  <Button type="button" className="w-full" size="lg" onClick={handleGoogleSignIn} disabled={loading}>
+                  <Button type="button" className="cursor-pointer w-full" size="lg" onClick={handleGoogleSignIn} disabled={loading}>
                     <span className="text-base leading-none font-bold mr-2">G</span>
                     Continue with Google
                   </Button>
@@ -184,7 +184,7 @@ export default function Login() {
 
               {error && <p className="text-sm text-red-400">{error}</p>}
 
-              <Button type="submit" className="w-full" size="lg" disabled={loading}>
+              <Button type="submit" className="cursor-pointer w-full" size="lg" disabled={loading}>
                 {loading ? "Please wait…" : otpSent ? "Verify & Sign In" : "Send verification code"}
               </Button>
             </form>

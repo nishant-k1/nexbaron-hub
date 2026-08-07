@@ -249,7 +249,7 @@ export default function Dashboard() {
               <p className="text-[10px] text-muted">Cancel anytime. Site is yours forever.</p>
             </div>
 
-            <button className="w-full py-3 bg-accent hover:opacity-90 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-accent/20">
+            <button className="cursor-pointer w-full py-3 bg-accent hover:opacity-90 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-accent/20">
               <CreditCard className="w-4 h-4" />
               Pay & Start
               <ArrowRight className="w-4 h-4" />

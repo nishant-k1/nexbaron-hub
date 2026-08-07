@@ -58,7 +58,7 @@ export default function AppLayout() {
         <div className="p-3 border-t border-border space-y-2">
           <button
             onClick={toggle}
-            className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-muted hover:text-heading hover:bg-white/5"
+            className="cursor-pointer cursor-pointer flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-muted hover:text-heading hover:bg-white/5"
           >
             {mode === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             {mode === "dark" ? "Light mode" : "Dark mode"}
@@ -72,7 +72,7 @@ export default function AppLayout() {
               <p className="text-xs font-semibold text-heading truncate">{user?.name}</p>
               <p className="text-[10px] text-muted">{user?.email || user?.phone}</p>
             </div>
-            <button onClick={signOut} title="Sign out" className="text-muted hover:text-red-400">
+            <button onClick={signOut} title="Sign out" className="cursor-pointer text-muted hover:text-red-400">
               <LogOut className="h-4 w-4" />
             </button>
           </div>

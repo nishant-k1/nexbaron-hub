@@ -45,6 +45,7 @@ function HubRoutes() {
       </Route>
       <Route path="*" element={<Navigate to="/digital" replace />} />
     </Routes>
+    </ErrorBoundary>
   )
 }
 

@@ -33,10 +33,15 @@ export default function Login() {
   if (division !== "digital" && division !== "print") return null
 
   // Already logged in — redirect to dashboard
-  if (initialized && user) {
-    navigate(`/${division}`, { replace: true })
-    return null
-  }
+  useEffect(() => {
+    if (initialized && user) {
+      navigate(`/${division}`, { replace: true })
+    }
+  }, [initialized, user, division, navigate])
+
+  // Show nothing while checking auth
+  if (!initialized) return null
+  if (user) return null
 
   const copy = COPY[division]
   const googleClientId = getGoogleClientId(division)

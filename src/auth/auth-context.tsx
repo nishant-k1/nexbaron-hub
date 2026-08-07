@@ -45,6 +45,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { void refresh() }, [refresh])
 
+  // Auto-login via ?token= in URL (from pricing page signup)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const tokenParam = params.get("token")
+    if (tokenParam && division) {
+      const div = division
+      // Verify the token by fetching /me
+      setToken(tokenParam, div)
+      apiRequest<{ user: AuthUser }>(`/${div}/auth/me`, {}, div)
+        .then((data) => {
+          if (data.user.division === div) {
+            ++refreshGen.current
+            setUser(data.user)
+            setInitialized(true)
+            // Clean URL
+            navigate(`/${div}`, { replace: true })
+          } else {
+            setToken(null, div)
+          }
+        })
+        .catch(() => {
+          setToken(null, div)
+        })
+    }
+  }, []) // only on mount
+
   const signIn = useCallback((token: string, u: AuthUser) => {
     ++refreshGen.current
     setToken(token, u.division)

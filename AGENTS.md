@@ -115,3 +115,13 @@ For CRM and Hub: **sidebar + topbar fixed, content scrolls independently.**
 - Topbar: inside main, fixed height, never scrolls.
 
 This is the Stripe / Linear / Vercel pattern.
+
+### Clickable Elements
+
+Every interactive element must have a cursor pointer:
+
+- `<button>` — natively gets `cursor: pointer`, no extra class needed.
+- `<a href="...">` — natively gets `cursor: pointer`, no extra class needed.
+- `<div onClick={...}>`, `<span onClick={...}>`, `<tr onClick={...}>` — must include `cursor-pointer`.
+- Any element with `onClick` that is not a native `<button>` or `<a>` — must include `cursor-pointer`.
+- `hover:` transitions on clickable rows: `hover:bg-neutral-bg cursor-pointer transition-colors`.

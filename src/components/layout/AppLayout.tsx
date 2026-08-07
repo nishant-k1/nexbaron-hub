@@ -30,7 +30,7 @@ export default function AppLayout() {
     .split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase()
 
   return (
-    <div className="min-h-screen flex bg-neutral-bg" style={{ "--accent-color": isPrint ? "#f59e0b" : "#14b8a6" } as React.CSSProperties}>
+    <div className="h-screen flex bg-neutral-bg overflow-hidden" style={{ "--accent-color": isPrint ? "#f59e0b" : "#14b8a6" } as React.CSSProperties}>
       <aside className="w-56 border-r border-border bg-neutral-surface shrink-0 flex flex-col">
         <Link to={`/${division}`} className="p-4 border-b border-border flex items-center gap-3 hover:bg-white/5">
           <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${isPrint ? "from-amber-500 to-orange-500" : "from-teal-500 to-cyan-400"} flex items-center justify-center text-white font-bold text-sm`}>

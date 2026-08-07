@@ -58,7 +58,7 @@ export default function AppLayout() {
         <div className="p-3 border-t border-border space-y-2">
           <button
             onClick={toggle}
-            className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-muted hover:text-heading hover:bg-white/5"
+            className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-muted hover:text-heading hover:bg-white/5"
           >
             {mode === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             {mode === "dark" ? "Light mode" : "Dark mode"}

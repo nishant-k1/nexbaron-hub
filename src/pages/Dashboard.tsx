@@ -162,7 +162,7 @@ export default function Dashboard() {
                   <button
                     key={s.id}
                     onClick={() => toggleService(s.id)}
-                    className="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-neutral-bg transition-colors group"
+                    className="cursor-pointer w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-neutral-bg transition-colors group"
                   >
                     <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-all ${
                       on ? `border-accent bg-accent` : "border-muted/40"
@@ -214,7 +214,7 @@ export default function Dashboard() {
                       </span>
                       <button
                         onClick={() => setAddOn(a.id, count + 1)}
-                        className="w-6 h-6 rounded-lg border border-accent/20 text-accent/60 hover:border-accent hover:text-accent hover:bg-accent/5 flex items-center justify-center transition-all"
+                        className="cursor-pointer w-6 h-6 rounded-lg border border-accent/20 text-accent/60 hover:border-accent hover:text-accent hover:bg-accent/5 flex items-center justify-center transition-all"
                       >
                         <Plus className="w-3 h-3" />
                       </button>

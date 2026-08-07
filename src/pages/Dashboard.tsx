@@ -102,6 +102,24 @@ export default function Dashboard() {
     })
   }
 
+  if (!plan || loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  const includedOneTime = plan.services.filter((s) => enabled.has(s.id) && s.type === "oneTime").reduce((s, x) => s + x.price, 0)
+  const includedMonthly = plan.services.filter((s) => enabled.has(s.id) && s.type === "monthly").reduce((s, x) => s + x.price, 0)
+  const addOnOneTime = ADDONS.filter((a) => (addOns[a.id] || 0) > 0 && a.type === "oneTime").reduce((s, a) => s + a.price * (addOns[a.id] || 0), 0)
+  const addOnMonthly = ADDONS.filter((a) => (addOns[a.id] || 0) > 0 && a.type === "monthly").reduce((s, a) => s + a.price * (addOns[a.id] || 0), 0)
+
+  const totalOneTime = includedOneTime + addOnOneTime
+  const totalMonthly = includedMonthly + addOnMonthly
+  const removedCount = plan.services.length - enabled.size
+  const Icon = ICONS[planId] || Rocket
+
   const handlePay = useCallback(async () => {
     if (!division) return
     setPaying(true)
@@ -123,24 +141,6 @@ export default function Dashboard() {
       rzp.open()
     } catch { } finally { setPaying(false) }
   }, [division, planId, totalOneTime, totalMonthly, user])
-
-  if (!plan || loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
-
-  const includedOneTime = plan.services.filter((s) => enabled.has(s.id) && s.type === "oneTime").reduce((s, x) => s + x.price, 0)
-  const includedMonthly = plan.services.filter((s) => enabled.has(s.id) && s.type === "monthly").reduce((s, x) => s + x.price, 0)
-  const addOnOneTime = ADDONS.filter((a) => (addOns[a.id] || 0) > 0 && a.type === "oneTime").reduce((s, a) => s + a.price * (addOns[a.id] || 0), 0)
-  const addOnMonthly = ADDONS.filter((a) => (addOns[a.id] || 0) > 0 && a.type === "monthly").reduce((s, a) => s + a.price * (addOns[a.id] || 0), 0)
-
-  const totalOneTime = includedOneTime + addOnOneTime
-  const totalMonthly = includedMonthly + addOnMonthly
-  const removedCount = plan.services.length - enabled.size
-  const Icon = ICONS[planId] || Rocket
 
   return (
     <div className="h-full flex flex-col">

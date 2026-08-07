@@ -103,3 +103,15 @@ You are a world-class UX/UI designer. Every interface you build must reflect thi
 - Width: `w-96`, pinned right (`border-l border-border`), `bg-neutral-bg`.
 - Close button: `X` icon top-right, `w-8 h-8 rounded-lg hover:bg-neutral-surface`.
 - Sections separated by `border-t border-border pt-4`.
+
+### App Shell Layout
+
+For CRM and Hub: **sidebar + topbar fixed, content scrolls independently.**
+
+- Root wrapper: `h-screen flex bg-neutral-bg overflow-hidden` (NOT `min-h-screen`).
+- Sidebar: fixed left, `h-full`.
+- Main area: `flex-1 flex flex-col overflow-hidden`.
+- Content: `flex-1 overflow-auto` — this is the ONLY element that scrolls.
+- Topbar: inside main, fixed height, never scrolls.
+
+This is the Stripe / Linear / Vercel pattern.

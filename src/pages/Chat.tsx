@@ -49,6 +49,8 @@ export default function ChatPage() {
           body: JSON.stringify({
             message: text.trim(),
             name: user?.name,
+            email: user?.email,
+            phone: user?.phone,
           }),
         }, division);
         setInput("");

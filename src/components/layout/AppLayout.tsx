@@ -1,8 +1,8 @@
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
-import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, Cpu, Printer, X, AlertTriangle, Loader2, ChevronRight, Bell } from "lucide-react"
+import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, Cpu, Printer, X, AlertTriangle, Loader2, ChevronRight, Bell, Sun, Moon } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/auth/auth-context"
-import { useDivision } from "@/theme/theme-provider"
+import { useDivision, useTheme } from "@/theme/theme-provider"
 import { cn } from "@/lib/cn"
 import { apiRequest } from "@/lib/api"
 
@@ -13,6 +13,7 @@ const PAGE_TITLES: Record<string, string> = {
 export default function AppLayout() {
   const { user, signOut } = useAuth()
   const division = useDivision()
+  const { mode, toggle } = useTheme()
   const location = useLocation()
   const isPrint = division === "print"
 
@@ -118,6 +119,11 @@ export default function AppLayout() {
                 <p className="text-xs font-semibold text-heading truncate">{user?.name}</p>
                 
               </div>
+            </button>
+            <button onClick={toggle} title="Toggle theme"
+              className="cursor-pointer w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-muted hover:text-heading hover:bg-white/5 transition-colors">
+              {mode === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              {mode === "dark" ? "Light" : "Dark"}
             </button>
             <button onClick={signOut} title="Sign out"
               className="cursor-pointer text-muted hover:text-red-400 shrink-0 pl-2">

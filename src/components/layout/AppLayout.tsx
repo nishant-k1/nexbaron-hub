@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
 import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, Cpu, Printer, X, AlertTriangle, Loader2, ChevronRight } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/auth/auth-context"
 import { useDivision } from "@/theme/theme-provider"
 import { cn } from "@/lib/cn"
@@ -32,6 +32,30 @@ export default function AppLayout() {
   const [saving, setSaving] = useState(false)
   const [profileForm, setProfileForm] = useState({ name: "", email: "", phone: "" })
   const [settingsError, setSettingsError] = useState("")
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const notifRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!division) return
+    const poll = () => {
+      apiRequest<{ success: boolean; messages?: Array<{ isRead: boolean }> }>(`/${division}/chat`, {}, division)
+        .then((d) => {
+          const msgs = d.messages || []
+          setUnreadCount(msgs.filter((m) => !m.isRead).length)
+        }).catch(() => {})
+    }
+    poll()
+    const interval = setInterval(poll, 30000)
+    return () => clearInterval(interval)
+  }, [division])
+
+  useEffect(() => {
+    if (!notifOpen) return
+    const handler = (e: MouseEvent) => { if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false) }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [notifOpen])
 
   useEffect(() => {
     if (settingsOpen) {
@@ -107,7 +131,36 @@ export default function AppLayout() {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 border-b border-border bg-neutral-surface/60 backdrop-blur flex items-center justify-between px-6 shrink-0">
           <h2 className="text-base font-semibold text-heading">{pageTitle}</h2>
-          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${isPrint ? "bg-amber-500/10 text-amber-400" : "bg-teal-500/10 text-teal-400"}`}>
+          <div ref={notifRef} className="relative">
+              <button onClick={() => setNotifOpen(!notifOpen)}
+                className="cursor-pointer relative text-muted hover:text-heading transition-colors">
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white ring-2 ring-neutral-surface">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-2 w-72 bg-neutral-surface border border-border rounded-xl shadow-2xl z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-heading">Messages</h3>
+                    <button onClick={() => setNotifOpen(false)} className="cursor-pointer text-muted hover:text-heading"><X className="w-4 h-4" /></button>
+                  </div>
+                  <div className="p-4 text-center">
+                    {unreadCount > 0 ? (
+                      <Link to={`/${division}/chat`} onClick={() => setNotifOpen(false)}
+                        className="text-sm text-accent hover:underline">
+                        {unreadCount} new message{unreadCount > 1 ? "s" : ""} — open Chat
+                      </Link>
+                    ) : (
+                      <p className="text-sm text-muted">No new messages</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${isPrint ? "bg-amber-500/10 text-amber-400" : "bg-teal-500/10 text-teal-400"}`}>
             {isPrint ? <Printer className="h-3 w-3" /> : <Cpu className="h-3 w-3" />}
             {division}
           </span>

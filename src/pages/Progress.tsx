@@ -80,7 +80,7 @@ export default function Progress() {
   const milestones: Milestone[] = serverMilestones.length > 0
     ? serverMilestones.map((m: any) => ({
         label: m.label || m.key,
-        done: m.status === 'done' || m.status === 'completed' || m.status === 'delivered' || m.done === true,
+        done: m.status === 'done' || m.status === 'delivered' || m.done === true,
       }))
     : getMilestones(order || {} as Order, timeline)
   const done = milestones.filter((m) => m.done).length

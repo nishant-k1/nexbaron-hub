@@ -125,3 +125,11 @@ Every interactive element must have a cursor pointer:
 - `<div onClick={...}>`, `<span onClick={...}>`, `<tr onClick={...}>` — must include `cursor-pointer`.
 - Any element with `onClick` that is not a native `<button>` or `<a>` — must include `cursor-pointer`.
 - `hover:` transitions on clickable rows: `hover:bg-neutral-bg cursor-pointer transition-colors`.
+
+### Data Source of Truth
+
+- **API is the single source of truth for ALL data.** Never hardcode prices, plan names, service lists, statuses, milestones, or any business data in the frontend.
+- When building a feature that spans repos: always start with the API. Define the data model, the endpoint response shape, and the status flow FIRST. Then update all clients (web, hub, crm) to consume that data as-is.
+- Frontend must display exactly what the API returns. No client-side mapping, no hardcoded defaults for business data, no fallback arrays for plan services or pricing.
+- If a feature needs new data from the API, add the endpoint/field to the API first, then update all clients to use it.
+- NEVER hardcode plan names ("Launch"), service lists, prices, progress percentages, or milestone labels. Read everything from the API response.

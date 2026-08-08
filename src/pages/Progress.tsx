@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { useDivision } from "@/theme/theme-provider";
 
-interface ServiceItem { label: string; status: "pending" | "in_progress" | "done"; type?: string }
-
-interface Order { _id: string; plan?: string; service?: string; status?: string; amount?: number; amountPaid?: number; items?: ServiceItem[]; createdAt: string }
+interface ProgressStep { label: string; done: boolean }
+interface Progress { steps: ProgressStep[]; percentage: number }
+interface Order { _id: string; plan?: string; service?: string; status?: string; amount?: number; progress?: Progress; createdAt: string }
 
 const MONEY = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 })
 
@@ -31,18 +31,14 @@ export default function Progress() {
     </div>
   )
 
-  const items = order.items?.length ? order.items : []
-  const allItems: ServiceItem[] = [
-    { label: "Package chosen", status: "done" },
-    { label: "Payment completed", status: (order.status === "paid" || order.status === "in_progress" || order.status === "delivered") ? "done" : "pending" },
-    ...items,
-  ]
-  const doneCount = allItems.filter((i) => i.status === "done").length
-  const inProgressCount = allItems.filter((i) => i.status === "in_progress").length
-  const pct = allItems.length > 0 ? Math.round((doneCount / allItems.length) * 100) : 0
+  const progress = order.progress
+  if (!progress) return <div className="p-12 text-center text-sm text-muted">Loading progress...</div>
+
+  const { steps, percentage } = progress
+  const doneCount = steps.filter((s) => s.done).length
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-heading">Progress</h1>
@@ -51,46 +47,44 @@ export default function Progress() {
         <button onClick={load} className="cursor-pointer p-2 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors"><RefreshCw className="w-4 h-4" /></button>
       </div>
 
-      {/* Timeline */}
       <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-xs text-muted uppercase tracking-wider">{order.plan || order.service || "Your Plan"}</p>
-              <p className="text-2xl font-extrabold text-heading mt-1">{pct}%</p>
+              <p className="text-2xl font-extrabold text-heading mt-1">{percentage}%</p>
             </div>
             <div className="w-16 h-16 rounded-full border-[5px] border-accent/20 flex items-center justify-center">
-              <span className="text-lg font-extrabold text-accent">{doneCount}<span className="text-sm text-muted font-normal">/{allItems.length}</span></span>
+              <span className="text-lg font-extrabold text-accent">{doneCount}<span className="text-sm text-muted font-normal">/{steps.length}</span></span>
             </div>
           </div>
           <div className="w-full h-2.5 bg-neutral-bg rounded-full overflow-hidden">
-            <div className="h-full bg-accent rounded-full transition-all duration-1000 ease-out" style={{ width: `${pct}%` }} />
+            <div className="h-full bg-accent rounded-full transition-all duration-1000 ease-out" style={{ width: `${percentage}%` }} />
           </div>
         </div>
         <div className="border-t border-border">
-          {allItems.map((item, i) => (
-            <div key={i} className={`flex items-center gap-4 px-6 py-4 relative ${item.status === "done" ? "" : "opacity-30"}`}>
-              {i < allItems.length - 1 && (
-                <div className={`absolute left-[29px] top-10 bottom-0 w-0.5 ${item.status === "done" && allItems[i + 1]?.status === "done" ? "bg-accent" : "bg-border"}`} />
+          {steps.map((step, i) => (
+            <div key={i} className={`flex items-center gap-4 px-6 py-4 relative ${step.done ? "" : "opacity-30"}`}>
+              {i < steps.length - 1 && (
+                <div className={`absolute left-[29px] top-10 bottom-0 w-0.5 ${step.done && steps[i + 1]?.done ? "bg-accent" : "bg-border"}`} />
               )}
               <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 ${
-                item.status === "done" ? "bg-accent text-white shadow-lg shadow-accent/20" : "bg-neutral-bg border-2 border-muted text-muted"
+                step.done ? "bg-accent text-white shadow-lg shadow-accent/20" : "bg-neutral-bg border-2 border-muted text-muted"
               }`}>
-                {item.status === "done" ? <CheckCircle2 className="w-4 h-4" /> : <span className="text-[10px] font-bold">{i + 1}</span>}
+                {step.done ? <CheckCircle2 className="w-4 h-4" /> : <span className="text-[10px] font-bold">{i + 1}</span>}
               </div>
               <div className="flex-1">
-                <p className={`text-sm ${item.status === "done" ? "text-heading font-semibold" : "text-muted"}`}>{item.label}</p>
-                {i === doneCount && doneCount < allItems.length && (
+                <p className={`text-sm ${step.done ? "text-heading font-semibold" : "text-muted"}`}>{step.label}</p>
+                {i === doneCount && doneCount < steps.length && (
                   <p className="text-[10px] text-accent mt-0.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" /> In progress</p>
                 )}
               </div>
-              {item.status === "done" && <span className="text-[10px] text-emerald-400 font-medium">Done</span>}
+              {step.done && <span className="text-[10px] text-emerald-400 font-medium">Done</span>}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Summary */}
       <div className="rounded-2xl bg-neutral-surface border border-border p-5">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div><p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Status</p>
@@ -100,7 +94,7 @@ export default function Progress() {
             }`}>{order.status === "in_progress" ? "In Progress" : order.status || "pending"}</span>
           </div>
           <div><p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Amount</p><p className="text-sm font-bold text-heading">{MONEY.format(order.amount || 0)}</p></div>
-          <div><p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Services</p><p className="text-sm font-bold text-heading">{doneCount}/{allItems.length} done</p></div>
+          <div><p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Services</p><p className="text-sm font-bold text-heading">{doneCount}/{steps.length} done</p></div>
           <div><p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Since</p><p className="text-sm font-medium text-heading">{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p></div>
         </div>
       </div>

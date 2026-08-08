@@ -95,7 +95,7 @@ export default function AppLayout() {
                 <p className="text-[10px] text-muted">{user?.email || user?.phone}</p>
               </div>
             </button>
-            <button onClick={signOut} title="Sign out"
+            <button onClick={signOut} title="Sign out" className="mt-2 
               className="cursor-pointer text-muted hover:text-red-400 shrink-0">
               <LogOut className="w-4 h-4" />
             </button>

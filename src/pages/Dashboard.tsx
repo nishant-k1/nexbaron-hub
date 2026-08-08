@@ -264,7 +264,7 @@ export default function Dashboard() {
                       method: 'POST', headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ razorpay_order_id: order.razorpayOrderId, razorpay_payment_id: 'dev_payment', razorpay_signature: 'dev_signature' }),
                     }, division)
-                    window.location.reload()
+                    window.location.href = '/' + division + '/' + 'orders'
                     return
                   }
                   new (window as any).Razorpay({
@@ -273,7 +273,7 @@ export default function Dashboard() {
                     description: planId + ' Plan', order_id: order.razorpayOrderId,
                     handler: async (r: any) => {
                       await apiRequest('/' + division + '/payments/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(r) }, division)
-                      window.location.reload()
+                      window.location.href = '/' + division + '/' + 'orders'
                     },
                     prefill: { name: user?.name || '', email: user?.email || '', contact: user?.phone || '' },
                     theme: { color: division === 'digital' ? '#14b8a6' : '#f59e0b' },

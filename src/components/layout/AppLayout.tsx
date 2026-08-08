@@ -40,10 +40,10 @@ export default function AppLayout() {
   useEffect(() => {
     if (!division) return
     const poll = () => {
-      apiRequest<{ success: boolean; messages?: Array<{ isRead: boolean }> }>(`/${division}/chat`, {}, division!)
+      apiRequest<{ success: boolean; messages?: Array<{ isRead: boolean; sender: string }> }>(`/${division}/chat`, {}, division!)
         .then((d) => {
           const msgs = d.messages || []
-          setUnreadCount(msgs.filter((m) => !m.isRead).length)
+          setUnreadCount(msgs.filter((m) => m.sender === "agent" && !m.isRead).length)
         }).catch(() => {})
     }
     poll()

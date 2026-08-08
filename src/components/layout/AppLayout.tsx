@@ -1,8 +1,9 @@
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
-import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, Cpu, Printer, X, AlertTriangle, Loader2, ChevronRight, Bell, Sun, Moon } from "lucide-react"
+import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, Cpu, Printer, X, AlertTriangle, Loader2, Bell, Sun, Moon } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/auth/auth-context"
 import { useDivision, useTheme } from "@/theme/theme-provider"
+import { BrandMark } from "@/components/brand/BrandMark"
 import { cn } from "@/lib/cn"
 import { apiRequest } from "@/lib/api"
 
@@ -90,7 +91,7 @@ export default function AppLayout() {
       {/* Sidebar */}
       <aside className="w-56 border-r border-border bg-neutral-surface shrink-0 flex flex-col">
         <Link to={`/${division}`} className="p-4 border-b border-border flex items-center gap-3 hover:bg-white/5">
-          <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${isPrint ? "from-amber-500 to-orange-500" : "from-teal-500 to-cyan-400"} flex items-center justify-center text-white font-bold text-sm`}>N</div>
+          <BrandMark size={36} />
           <div>
             <h1 className="text-sm font-bold text-heading leading-tight">Nexbaron Hub</h1>
             <p className="text-[10px] capitalize text-muted">{division}</p>

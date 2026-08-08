@@ -76,7 +76,13 @@ export default function Progress() {
   useEffect(() => { load() }, [division]);
 
   const timeline = getTimeline(order || {} as Order)
-  const milestones = order?.milestones?.length ? order.milestones : getMilestones(order || {} as Order, timeline)
+  const serverMilestones = order?.milestones || []
+  const milestones: Milestone[] = serverMilestones.length > 0
+    ? serverMilestones.map((m: any) => ({
+        label: m.label || m.key,
+        done: m.status === 'done' || m.status === 'completed' || m.status === 'delivered' || m.done === true,
+      }))
+    : getMilestones(order || {} as Order, timeline)
   const done = milestones.filter((m) => m.done).length
   const pct = Math.round((done / milestones.length) * 100)
 

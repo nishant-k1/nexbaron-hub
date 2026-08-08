@@ -141,7 +141,11 @@ export default function ChatPage() {
                 ))}
                 <div className="text-[10px] mt-1 opacity-60 flex items-center gap-1.5">
                   {new Date(msg.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                  {msg.sender === "customer" && (msg.isRead ? <CheckCheck className="w-3 h-3 text-blue-300" /> : <CheckCheck className="w-3 h-3 opacity-30" />)}
+                  {msg.sender === "customer" && (
+                    msg.isRead
+                      ? <span className="text-[9px] text-blue-400 font-medium flex items-center gap-0.5"><CheckCheck className="w-3 h-3" /> Seen</span>
+                      : <CheckCheck className="w-3.5 h-3.5 opacity-40" />
+                  )}
                 </div>
               </div>
             </div>

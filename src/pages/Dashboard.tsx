@@ -14,8 +14,6 @@ import {
   Package,
   ShoppingBag,
   Loader2,
-  MessageSquare,
-  Loader2,
 } from "lucide-react"
 
 import { useAuth } from "@/auth/auth-context"

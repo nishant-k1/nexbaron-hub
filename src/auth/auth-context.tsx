@@ -37,9 +37,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await apiRequest<{ user: AuthUser }>(`/${div}/auth/me`, {}, div)
       if (gen !== refreshGen.current) return
-      if (data.user.division !== div) { setToken(null, div); setUser(null) }
-      else setUser(data.user)
-    } catch { if (gen === refreshGen.current) { setToken(null, div); setUser(null) } }
+      if (data.user.division !== div) { setToken(null, div); localStorage.removeItem(`nexbaron-user-${div}`); setUser(null) }
+      else { setUser(data.user); localStorage.setItem(`nexbaron-user-${div}`, JSON.stringify(data.user)) }
+    } catch { if (gen === refreshGen.current) {
+      // Use cached user data if API is unavailable
+      const cached = localStorage.getItem(`nexbaron-user-${div}`)
+      if (cached) { try { setUser(JSON.parse(cached)) } catch { setUser(null) } }
+      else setUser(null)
+      setInitialized(true)
+    } }
     finally { if (gen === refreshGen.current) setInitialized(true) }
   }, [division])
 

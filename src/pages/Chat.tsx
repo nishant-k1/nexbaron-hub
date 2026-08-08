@@ -119,8 +119,9 @@ export default function ChatPage() {
                     {a.type === "image" ? (
                       <img src={a.url} alt={a.name} className="rounded-lg max-w-full max-h-48 object-cover" />
                     ) : (
-                      <a href={a.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 p-2 rounded-lg text-xs ${msg.sender === "customer" ? "bg-white/10 hover:bg-white/20" : "bg-neutral-surface hover:bg-neutral-bg"} transition-colors`}>
+                      <a href={a.url} download target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 p-2 rounded-lg text-xs ${msg.sender === "customer" ? "bg-white/10 hover:bg-white/20" : "bg-neutral-surface hover:bg-neutral-bg"} transition-colors group`}>
                         {getAttachIcon(a.type)} {a.name}
+                        <Download className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </a>
                     )}
                   </div>

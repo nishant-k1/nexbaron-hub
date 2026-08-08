@@ -1,5 +1,5 @@
-import { Clock, Loader2, CheckCircle2, Circle, RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Clock, CheckCircle2, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { useDivision } from "@/theme/theme-provider";
 
@@ -13,21 +13,24 @@ export default function Progress() {
   const division = useDivision()
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
-  const load = () => {
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const load = useCallback(() => {
     if (!division) return
     setLoading(true)
+    setLoadError(null)
     apiRequest<{ orders?: Order[] }>(`/${division}/payments/orders/mine`, {}, division)
       .then((d) => setOrder((d.orders || [])[0] || null))
-      .catch(() => {}).finally(() => setLoading(false))
-  }
-  useEffect(() => { load() }, [division])
+      .catch(() => setLoadError("Could not load progress")).finally(() => setLoading(false))
+  }, [division])
+  useEffect(() => { load() }, [division, load])
 
   if (loading) return <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" /></div>
-  if (!order) return (
+  if (loadError || !order) return (
     <div className="max-w-lg mx-auto py-16 text-center">
       <div className="w-20 h-20 mx-auto rounded-2xl bg-neutral-surface border border-border flex items-center justify-center mb-6"><Clock className="w-10 h-10 text-muted/40" /></div>
-      <h1 className="text-2xl font-bold text-heading mb-2">No active project</h1>
-      <p className="text-sm text-muted">Complete your payment to see your project progress here.</p>
+      <h1 className="text-2xl font-bold text-heading mb-2">{loadError ? "Could not load progress" : "No active project"}</h1>
+      <p className="text-sm text-muted">{loadError || "Complete your payment to see your project progress here."}</p>
+      {loadError && <button onClick={load} className="cursor-pointer mt-4 px-4 py-2 bg-accent text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity">Retry</button>}
     </div>
   )
 

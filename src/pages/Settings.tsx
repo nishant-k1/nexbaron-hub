@@ -1,4 +1,4 @@
-import { User, Mail, Phone, Shield, Settings2 } from "lucide-react";
+import { User, Mail, Phone } from "lucide-react";
 import { useAuth } from "@/auth/auth-context";
 
 export default function Settings() {

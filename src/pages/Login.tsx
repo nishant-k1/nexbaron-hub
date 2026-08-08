@@ -30,14 +30,17 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [devCode, setDevCode] = useState<string | null>(null)
 
-  if (division !== "digital" && division !== "print") return null
+  // Hooks must run unconditionally (before any early return).
+  useEffect(() => { loadGoogleGis() }, [])
 
   // Already logged in — redirect to dashboard
   useEffect(() => {
-    if (initialized && user) {
+    if (initialized && user && (division === "digital" || division === "print")) {
       navigate(`/${division}`, { replace: true })
     }
   }, [initialized, user, division, navigate])
+
+  if (division !== "digital" && division !== "print") return null
 
   // Show nothing while checking auth
   if (!initialized) return null
@@ -45,8 +48,6 @@ export default function Login() {
 
   const copy = COPY[division]
   const googleClientId = getGoogleClientId(division)
-
-  useEffect(() => { loadGoogleGis() }, [])
 
   const handleGoogleSignIn = async () => {
     if (!googleClientId) { setError("Google sign-in is not configured."); return }
@@ -131,7 +132,7 @@ export default function Login() {
               <p className="text-sm text-muted">Access your {division} account.</p>
             </div>
 
-            <form onSubmit={e => { e.preventDefault(); otpSent ? verifyCode() : requestOtp() }} className="space-y-4">
+            <form onSubmit={e => { e.preventDefault(); if (otpSent) verifyCode(); else requestOtp() }} className="space-y-4">
               {googleClientId && (
                 <>
                   <Button type="button" className="cursor-pointer w-full" size="lg" onClick={handleGoogleSignIn} disabled={loading}>

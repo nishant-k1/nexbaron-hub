@@ -40,21 +40,7 @@ interface CatalogPlan {
   addOns: CatalogService[]
 }
 
-const ADDONS: CatalogService[] = [
-  { id: "extra-pages", label: "Extra pages", price: 1499, type: "oneTime", unitLabel: "per page" },
-  { id: "photos", label: "Additional photos", price: 699, type: "oneTime" },
-  { id: "logo", label: "Logo design", price: 2999, type: "oneTime" },
-  { id: "seo", label: "SEO blog posts", price: 999, type: "monthly", unitLabel: "per post" },
-  { id: "social", label: "Social media posts", price: 799, type: "monthly", unitLabel: "per post" },
-  { id: "ads", label: "Google Ads management", price: 4999, type: "monthly" },
-]
-
 const ICONS: Record<string, React.ElementType> = { launch: Rocket, growth: TrendingUp, scale: Building2 }
-const ACCENTS: Record<string, string> = {
-  launch: "border-violet-500/30 bg-violet-500/5 text-violet-400",
-  growth: "border-accent/30 bg-accent/5 text-accent",
-  scale: "border-amber-500/30 bg-amber-500/5 text-amber-400",
-}
 
 const MONEY = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 })
 
@@ -70,6 +56,7 @@ export default function Dashboard() {
   const [addOns, setAddOns] = useState<Record<string, number>>({})
   const [paying, setPaying] = useState(false)
   const [saving, setSavingPlan] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!division) return
@@ -91,7 +78,7 @@ export default function Dashboard() {
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [division])
+  }, [division, user?.planConfig])
 
   const toggleService = (id: string) => {
     setEnabled((prev) => {
@@ -121,8 +108,8 @@ export default function Dashboard() {
 
   const includedOneTime = plan.services.filter((s) => enabled.has(s.id) && s.type === "oneTime").reduce((s, x) => s + x.price, 0)
   const includedMonthly = plan.services.filter((s) => enabled.has(s.id) && s.type === "monthly").reduce((s, x) => s + x.price, 0)
-  const addOnOneTime = ADDONS.filter((a) => (addOns[a.id] || 0) > 0 && a.type === "oneTime").reduce((s, a) => s + a.price * (addOns[a.id] || 0), 0)
-  const addOnMonthly = ADDONS.filter((a) => (addOns[a.id] || 0) > 0 && a.type === "monthly").reduce((s, a) => s + a.price * (addOns[a.id] || 0), 0)
+  const addOnOneTime = plan.addOns.filter((a) => (addOns[a.id] || 0) > 0 && a.type === "oneTime").reduce((s, a) => s + a.price * (addOns[a.id] || 0), 0)
+  const addOnMonthly = plan.addOns.filter((a) => (addOns[a.id] || 0) > 0 && a.type === "monthly").reduce((s, a) => s + a.price * (addOns[a.id] || 0), 0)
 
   const totalOneTime = includedOneTime + addOnOneTime
   const totalMonthly = includedMonthly + addOnMonthly
@@ -203,7 +190,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="divide-y divide-border/40">
-              {ADDONS.map((a) => {
+              {plan.addOns.map((a) => {
                 const count = addOns[a.id] || 0
                 return (
                   <div key={a.id} className="flex items-center justify-between px-5 py-3">
@@ -263,9 +250,24 @@ export default function Dashboard() {
             </div>
 
             <button onClick={() => {
-              if (!division) return
+              if (!division || !plan) return
               setPaying(true)
-              const body = JSON.stringify({ planId, selections: { planId, plans: {} } })
+              const selected = plan.services.filter((s) => enabled.has(s.id)).map((s) => s.id)
+              const addOnIds = Object.entries(addOns).filter(([, c]) => (c || 0) > 0).map(([id]) => id)
+              const body = JSON.stringify({
+                planId,
+                selections: {
+                  planId,
+                  plans: {
+                    [planId]: {
+                      selected,
+                      addOns: addOnIds,
+                      addOnCounts: addOns,
+                      inheritedOn: true,
+                    },
+                  },
+                },
+              })
               apiRequest<{ razorpayOrderId: string; razorpayKeyId: string; amount: number; devMode?: boolean }>(
                 '/' + division + '/payments/create-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }, division)
                 .then(async order => {
@@ -308,12 +310,15 @@ export default function Dashboard() {
               <button
                 onClick={async () => {
                   setSavingPlan(true)
+                  setSaveError(null)
                   const removed = plan.services.filter((s) => !enabled.has(s.id)).map((s) => s.id)
                   try {
                     await apiRequest("/" + division! + "/auth/save-plan", {
                       method: "PATCH", headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ planId, removedServices: removed, addOns }),
                     }, division!)
+                  } catch (err) {
+                    setSaveError(err instanceof Error ? err.message : "Could not save changes")
                   } finally { setSavingPlan(false) }
                 }}
                 disabled={saving}
@@ -323,6 +328,7 @@ export default function Dashboard() {
                 {saving ? "Saving..." : "Save Changes"}
               </button>
             )}
+          {saveError && <p className="text-xs text-red-400 mt-2 text-center">{saveError}</p>}
           <Link
             to={`/${division}/chat`}
             className="flex items-center gap-3 p-4 rounded-2xl bg-neutral-surface border border-border hover:border-accent/20 transition-colors group"

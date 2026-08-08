@@ -133,3 +133,14 @@ Every interactive element must have a cursor pointer:
 - Frontend must display exactly what the API returns. No client-side mapping, no hardcoded defaults for business data, no fallback arrays for plan services or pricing.
 - If a feature needs new data from the API, add the endpoint/field to the API first, then update all clients to use it.
 - NEVER hardcode plan names ("Launch"), service lists, prices, progress percentages, or milestone labels. Read everything from the API response.
+
+### Pre-Push Checklist
+
+After every code change, run the build/typecheck before pushing:
+
+- **API**: `npx tsc --noEmit`
+- **Hub**: `npx tsc --noEmit`
+- **CRM**: `npx tsc --noEmit`
+- **Web**: `npm run build` (catches type errors + lint + format)
+
+Never push code that fails the build. If a parser error occurs (OXC/Vite), verify with `npx tsc --noEmit` first — it catches real issues the bundler may miss.

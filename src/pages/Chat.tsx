@@ -65,7 +65,7 @@ export default function ChatPage() {
         fd.append("file", file); fd.append("api_key", sig.apiKey)
         fd.append("timestamp", String(sig.timestamp)); fd.append("signature", sig.signature)
         fd.append("folder", `nexbaron-chat-${division}`)
-        const res = await fetch(sig.uploadUrl, { method: "POST", body: fd })
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/auto/upload`, { method: "POST", body: fd })
         const json = await res.json()
         if (json.secure_url) {
           newAttachments.push({

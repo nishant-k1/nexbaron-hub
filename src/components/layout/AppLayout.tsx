@@ -131,7 +131,8 @@ export default function AppLayout() {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 border-b border-border bg-neutral-surface/60 backdrop-blur flex items-center justify-between px-6 shrink-0">
           <h2 className="text-base font-semibold text-heading">{pageTitle}</h2>
-          <div ref={notifRef} className="relative">
+          <div className="flex items-center gap-3">
+            <div ref={notifRef} className="relative">
               <button onClick={() => setNotifOpen(!notifOpen)}
                 className="cursor-pointer relative text-muted hover:text-heading transition-colors">
                 <Bell className="w-4 h-4" />

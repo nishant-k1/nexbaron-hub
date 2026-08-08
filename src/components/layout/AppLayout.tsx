@@ -165,6 +165,7 @@ export default function AppLayout() {
             {isPrint ? <Printer className="h-3 w-3" /> : <Cpu className="h-3 w-3" />}
             {division}
           </span>
+          </div>
         </header>
         <main className="flex-1 p-6 overflow-auto">
           <Outlet />

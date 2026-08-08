@@ -189,8 +189,12 @@ export default function Orders() {
               const cfg = STATUS_CONFIG[o.status || "pending"] || STATUS_CONFIG.pending
               const Icon = cfg.icon
               return (
-                <div key={o._id} className="flex items-center justify-between px-5 py-4 hover:bg-neutral-bg transition-colors group">
-                  <button onClick={() => navigate('/' + division + '/progress')} className="flex items-center gap-3 min-w-0 flex-1 text-left cursor-pointer">
+                <button
+                  key={o._id}
+                  onClick={() => navigate('/' + division + '/progress')}
+                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-neutral-bg transition-colors group cursor-pointer text-left"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className={`w-8 h-8 rounded-lg ${cfg.bg} flex items-center justify-center shrink-0`}>
                       <Icon className={`w-4 h-4 ${cfg.color}`} />
                     </div>
@@ -206,17 +210,17 @@ export default function Orders() {
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cfg.bg} ${cfg.color}`}>
                       {cfg.label}
                     </span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDownload(o._id); }}
+                      disabled={downloading === o._id}
+                      className="cursor-pointer p-2 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors disabled:opacity-50"
+                      title="Download receipt"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </button>
                     <ChevronRight className="w-4 h-4 text-muted group-hover:text-heading transition-colors" />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDownload(o._id); }}
-                    disabled={downloading === o._id}
-                    className="cursor-pointer p-2 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors shrink-0 disabled:opacity-50"
-                    title="Download receipt"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                  </div>
+                </button>
               )
             })}
           </div>

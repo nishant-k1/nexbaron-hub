@@ -1,4 +1,4 @@
-import { Send, MessageCircle, Paperclip, X, Image, FileText, Film, Download, CheckCheck } from "lucide-react";
+import { Send, MessageCircle, Paperclip, X, Image, FileText, Film, Download, CheckCheck, ExternalLink } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiRequest } from "@/lib/api";
@@ -12,6 +12,32 @@ interface ChatMessage {
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+
+const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp", "avif", "svg", "bmp", "ico"]
+const VIDEO_EXTENSIONS = ["mp4", "webm", "mov", "m4v", "mkv", "avi"]
+
+// Cloudinary treats PDFs as `resource_type: "image"`, so we must classify from
+// the actual file (MIME/extension) rather than the upload response.
+function typeFromFile(file: File): "image" | "video" | "document" {
+  if (file.type.startsWith("image/")) return "image"
+  if (file.type.startsWith("video/")) return "video"
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? ""
+  if (IMAGE_EXTENSIONS.includes(ext)) return "image"
+  if (VIDEO_EXTENSIONS.includes(ext)) return "video"
+  return "document"
+}
+
+// Documents (PDFs, office files) can't render in an <img>; images can.
+function renderAsImage(a: ChatAttachment): boolean {
+  if (a.type !== "image") return false
+  const ext = a.name.split(".").pop()?.toLowerCase() ?? ""
+  return IMAGE_EXTENSIONS.includes(ext)
+}
+
+// fl_attachment forces a file download; the plain URL lets the browser preview.
+function downloadUrl(a: ChatAttachment): string {
+  return a.url.replace("/upload/", "/upload/fl_attachment/")
+}
 
 function getAttachIcon(type: string) {
   if (type === "image") return <Image className="w-4 h-4" />
@@ -28,15 +54,19 @@ export default function ChatPage() {
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const loadMessages = useCallback(() => {
     if (!division) return;
     setLoading(true);
+    setLoadError(null);
     apiRequest<{ success: boolean; messages: ChatMessage[] }>(`/${division}/chat`, {}, division!)
       .then((data) => setMessages(data.messages || []))
-      .catch(() => {})
+      .catch(() => setLoadError("Could not load conversations"))
       .finally(() => setLoading(false));
   }, [division]);
 
@@ -54,6 +84,7 @@ export default function ChatPage() {
     const files = Array.from(e.target.files || []);
     if (files.length === 0 || !division) return;
     setUploading(true);
+    setUploadError(null);
     try {
       const sig = await apiRequest<{ cloudName: string; apiKey: string; timestamp: number; signature: string; uploadUrl: string }>(
         `/${division}/upload-signature`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ folder: `nexbaron-chat-${division}` }) }, division!
@@ -67,20 +98,23 @@ export default function ChatPage() {
         fd.append("folder", `nexbaron-chat-${division}`)
         const res = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/auto/upload`, { method: "POST", body: fd })
         const json = await res.json()
-        if (json.secure_url) {
-          newAttachments.push({
-            url: json.secure_url, name: file.name, size: file.size,
-            type: json.resource_type === "image" ? "image" : json.resource_type === "video" ? "video" : "document",
-          })
+        if (!res.ok || !json.secure_url) {
+          setUploadError(json?.error?.message || `Could not upload ${file.name}`)
+          continue
         }
+        newAttachments.push({
+          url: json.secure_url, name: file.name, size: file.size,
+          type: typeFromFile(file),
+        })
       }
       setAttachments(prev => [...prev, ...newAttachments])
-    } catch { } finally { setUploading(false); if (fileRef.current) fileRef.current.value = "" }
+    } catch (err) { setUploadError(err instanceof Error ? err.message : "Could not upload attachment") } finally { setUploading(false); if (fileRef.current) fileRef.current.value = "" }
   };
 
   const sendMessage = useCallback(async (text: string) => {
     if ((!text.trim() && attachments.length === 0) || !division) return;
     setSending(true);
+    setSendError(null);
     try {
       await apiRequest(`/${division}/chat`, {
         method: "POST",
@@ -91,7 +125,7 @@ export default function ChatPage() {
       }, division!);
       setInput(""); setAttachments([]);
       loadMessages();
-    } catch { } finally { setSending(false) }
+    } catch (err) { setSendError(err instanceof Error ? err.message : "Could not send message") } finally { setSending(false) }
   }, [division, user, attachments, loadMessages]);
 
   return (
@@ -105,6 +139,14 @@ export default function ChatPage() {
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : loadError ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30 text-muted" />
+              <p className="text-sm font-medium text-heading">{loadError}</p>
+              <button onClick={loadMessages} className="cursor-pointer mt-3 px-4 py-2 bg-accent text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity">Retry</button>
+            </div>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-sm text-muted text-center">
@@ -123,19 +165,28 @@ export default function ChatPage() {
                 {msg.message && <p>{msg.message}</p>}
                 {msg.attachments?.map((a, i) => (
                   <div key={i} className="mt-2">
-                    {a.type === "image" ? (
+                    {renderAsImage(a) ? (
                       <div className="relative group">
                         <img src={a.url} alt={a.name} className="rounded-lg max-w-full max-h-48 object-cover" />
-                        <a href={a.url.replace("/upload/", "/upload/fl_attachment/")} download={a.name} target="_blank" rel="noopener noreferrer"
+                        <a href={downloadUrl(a)} download={a.name} target="_blank" rel="noopener noreferrer"
                           className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-black/50 text-white hover:bg-black/70 transition-colors opacity-0 group-hover:opacity-100">
                           <Download className="w-3.5 h-3.5" />
                         </a>
                       </div>
                     ) : (
-                      <a href={a.url.replace("/upload/", "/upload/fl_attachment/")} download={a.name} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 p-2 rounded-lg text-xs ${msg.sender === "customer" ? "bg-white/10 hover:bg-white/20" : "bg-neutral-surface hover:bg-neutral-bg"} transition-colors`}>
-                        {getAttachIcon(a.type)} {a.name}
-                        <Download className="w-3 h-3 ml-1" />
-                      </a>
+                      <div className={`flex items-center gap-2 p-2 rounded-lg text-xs ${msg.sender === "customer" ? "bg-white/10" : "bg-neutral-surface"} transition-colors`}>
+                        <span className="shrink-0">{getAttachIcon(a.type)}</span>
+                        <span className="truncate flex-1 min-w-0">{a.name}</span>
+                        <a href={a.url} target="_blank" rel="noopener noreferrer" title="Open" aria-label={`Open ${a.name}`}
+                          className="p-1 rounded hover:bg-white/10 transition-colors">
+                          <span className="sr-only">Open</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                        <a href={downloadUrl(a)} download={a.name} title="Download" aria-label={`Download ${a.name}`}
+                          className="p-1 rounded hover:bg-white/10 transition-colors">
+                          <Download className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -158,13 +209,15 @@ export default function ChatPage() {
         <div className="flex gap-2 mt-2 flex-wrap">
           {attachments.map((a, i) => (
             <div key={i} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-surface border border-border text-xs">
-              {a.type === "image" ? <img src={a.url} alt="" className="w-6 h-6 rounded object-cover" /> : getAttachIcon(a.type)}
+              {renderAsImage(a) ? <img src={a.url} alt="" className="w-6 h-6 rounded object-cover" /> : getAttachIcon(a.type)}
               <span className="text-heading truncate max-w-[120px]">{a.name}</span>
               <button onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))} className="text-muted hover:text-red-400"><X className="w-3 h-3" /></button>
             </div>
           ))}
         </div>
       )}
+      {uploadError && <p className="text-xs text-red-400 mt-2">{uploadError}</p>}
+      {sendError && <p className="text-xs text-red-400 mt-2">{sendError}</p>}
 
       <form onSubmit={(e) => { e.preventDefault(); sendMessage(input) }} className="mt-3 flex gap-2">
         <input type="file" ref={fileRef} onChange={handleFilePick} className="hidden" multiple accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" />

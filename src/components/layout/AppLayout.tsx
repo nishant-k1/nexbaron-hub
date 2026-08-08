@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
-import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, Cpu, Printer, Settings, X, AlertTriangle, Loader2, ChevronRight } from "lucide-react"
+import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, Cpu, Printer, X, AlertTriangle, Loader2, ChevronRight } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/auth/auth-context"
 import { useDivision } from "@/theme/theme-provider"
@@ -86,16 +86,13 @@ export default function AppLayout() {
         </nav>
 
         <div className="p-3 border-t border-border space-y-2">
-          <div className="flex items-center gap-3 px-2 py-2">
+          <button onClick={() => setSettingsOpen(true)}
+            className="cursor-pointer w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors">
             <div className="w-8 h-8 rounded-full bg-accent/15 text-accent flex items-center justify-center text-xs font-bold">{initials}</div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 text-left">
               <p className="text-xs font-semibold text-heading truncate">{user?.name}</p>
               <p className="text-[10px] text-muted">{user?.email || user?.phone}</p>
             </div>
-          </div>
-          <button onClick={() => setSettingsOpen(true)}
-            className="cursor-pointer w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs text-muted hover:text-heading hover:bg-white/5 transition-colors">
-            <Settings className="w-3.5 h-3.5" /> Account Settings
           </button>
           <button onClick={signOut}
             className="cursor-pointer w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs text-muted hover:text-red-400 hover:bg-red-500/5 transition-colors">

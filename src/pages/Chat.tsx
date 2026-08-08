@@ -139,18 +139,13 @@ export default function ChatPage() {
                     )}
                   </div>
                 ))}
-                {msg.sender === "customer" && (
-                  <div className={`flex items-center justify-end gap-1.5 mt-2 pt-2 border-t text-[9px] font-medium ${
-                    msg.isRead
-                      ? "border-white/15 text-blue-200"
-                      : "border-white/10 text-white/35"
-                  }`}>
-                    <CheckCheck className="w-3.5 h-3.5" />
-                    {msg.isRead ? "Seen" : "Sent"}
-                  </div>
-                )}
-                <div className="text-[10px] mt-1 opacity-50">
+                <div className="text-[10px] mt-1 flex items-center gap-1.5" style={{ color: msg.sender === "customer" ? "rgba(255,255,255,0.85)" : "rgba(100,116,139,0.9)" }}>
                   {new Date(msg.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  {msg.sender === "customer" && (
+                    msg.isRead
+                      ? <span className="flex items-center gap-0.5 font-medium" style={{ color: "rgba(255,255,255,0.7)", fontSize: "9px" }}><CheckCheck className="w-3 h-3" /> Seen</span>
+                      : <span style={{ color: "rgba(255,255,255,0.45)" }}><CheckCheck className="w-3.5 h-3.5" /></span>
+                  )}
                 </div>
               </div>
             </div>

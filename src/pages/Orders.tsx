@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
-import { FileText, Loader2, IndianRupee, Calendar, CheckCircle2, Clock, Truck, AlertCircle, ChevronRight, Receipt, Download } from "lucide-react"
-import { Link } from "react-router-dom"
+import { Download, Loader2, Calendar, CheckCircle2, Clock, Truck, AlertCircle, ChevronRight, Receipt, ArrowUpRight } from "lucide-react"
+import { Link, useNavigate } from "react-router-dom"
 
 import { apiRequest } from "@/lib/api"
 import { useDivision } from "@/theme/theme-provider"
@@ -30,9 +30,10 @@ const STATUS_CONFIG: Record<string, { label: string; icon: typeof CheckCircle2; 
 
 export default function Orders() {
   const division = useDivision()
+  const navigate = useNavigate()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState<Order | null>(null)
+  const [downloading, setDownloading] = useState<string | null>(null)
 
   useEffect(() => {
     if (!division) return
@@ -41,6 +42,16 @@ export default function Orders() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [division])
+
+  const handleDownload = async (orderId: string) => {
+    setDownloading(orderId)
+    try {
+      const token = localStorage.getItem('nexbaron-token-' + division)
+      if (token) {
+        window.open('/' + division + '/payments/orders/' + orderId + '/receipt?token=' + encodeURIComponent(token), '_blank')
+      }
+    } catch { } finally { setDownloading(null) }
+  }
 
   if (loading) {
     return (
@@ -149,6 +160,23 @@ export default function Orders() {
               </div>
             </div>
           )}
+          <div className="mt-4 pt-4 border-t border-border/60 flex gap-2">
+            <button
+              onClick={() => handleDownload(latest._id)}
+              disabled={downloading === latest._id}
+              className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm text-heading hover:border-accent/40 hover:bg-accent/5 transition-all disabled:opacity-50"
+            >
+              <Download className="w-4 h-4 text-muted" />
+              {downloading === latest._id ? "Opening..." : "Receipt"}
+            </button>
+            <button
+              onClick={() => navigate('/' + division + '/progress')}
+              className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm text-heading hover:border-accent/40 hover:bg-accent/5 transition-all"
+            >
+              <ArrowUpRight className="w-4 h-4 text-muted" />
+              Track Progress
+            </button>
+          </div>
         </div>
       </div>
 
@@ -162,7 +190,7 @@ export default function Orders() {
               const Icon = cfg.icon
               return (
                 <div key={o._id} className="flex items-center justify-between px-5 py-4 hover:bg-neutral-bg transition-colors group">
-                  <div className="flex items-center gap-3 min-w-0">
+                  <button onClick={() => navigate('/' + division + '/progress')} className="flex items-center gap-3 min-w-0 flex-1 text-left cursor-pointer">
                     <div className={`w-8 h-8 rounded-lg ${cfg.bg} flex items-center justify-center shrink-0`}>
                       <Icon className={`w-4 h-4 ${cfg.color}`} />
                     </div>
@@ -179,7 +207,15 @@ export default function Orders() {
                       {cfg.label}
                     </span>
                     <ChevronRight className="w-4 h-4 text-muted group-hover:text-heading transition-colors" />
-                  </div>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDownload(o._id); }}
+                    disabled={downloading === o._id}
+                    className="cursor-pointer p-2 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors shrink-0 disabled:opacity-50"
+                    title="Download receipt"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               )
             })}

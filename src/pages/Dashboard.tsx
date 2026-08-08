@@ -310,10 +310,10 @@ export default function Dashboard() {
                   setSavingPlan(true)
                   const removed = plan.services.filter((s) => !enabled.has(s.id)).map((s) => s.id)
                   try {
-                    await apiRequest("/" + division + "/auth/save-plan", {
+                    await apiRequest("/" + division! + "/auth/save-plan", {
                       method: "PATCH", headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ planId, removedServices: removed, addOns }),
-                    }, division)
+                    }, division!)
                   } finally { setSavingPlan(false) }
                 }}
                 disabled={saving}

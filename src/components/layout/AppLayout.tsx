@@ -39,7 +39,7 @@ export default function AppLayout() {
   useEffect(() => {
     if (!division) return
     const poll = () => {
-      apiRequest<{ success: boolean; messages?: Array<{ isRead: boolean }> }>(`/${division}/chat`, {}, division)
+      apiRequest<{ success: boolean; messages?: Array<{ isRead: boolean }> }>(`/${division}/chat`, {}, division!)
         .then((d) => {
           const msgs = d.messages || []
           setUnreadCount(msgs.filter((m) => !m.isRead).length)
@@ -79,7 +79,7 @@ export default function AppLayout() {
   const handleDeleteAccount = async () => {
     setSaving(true)
     try {
-      await apiRequest(`/${division}/auth/delete-account`, { method: "DELETE" }, division)
+      await apiRequest(`/${division}/auth/delete-account`, { method: "DELETE" }, division!)
       signOut()
     } catch { setSettingsError("Failed to delete account"); setSaving(false) }
   }

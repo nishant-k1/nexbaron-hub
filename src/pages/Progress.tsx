@@ -1,32 +1,11 @@
-import { Clock, Loader2, CheckCircle2, Circle, RefreshCw, Globe, MapPin, Phone, Star, PenTool, FileText, MessageSquare, Package, CreditCard } from "lucide-react";
+import { Clock, Loader2, CheckCircle2, Circle, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { useDivision } from "@/theme/theme-provider";
 
-interface ServiceItem {
-  label: string
-  status: "pending" | "in_progress" | "done"
-  type?: string
-}
+interface ServiceItem { label: string; status: "pending" | "in_progress" | "done"; type?: string }
 
-interface Order {
-  _id: string; plan?: string; service?: string; status?: string
-  amount?: number; amountPaid?: number; items?: ServiceItem[]; createdAt: string
-}
-
-const SERVICE_ICONS: Record<string, typeof Globe> = {
-  website: Globe, site: Globe, page: Globe,
-  google: MapPin, gbp: MapPin, profile: MapPin,
-  whatsapp: Phone, booking: MessageSquare, message: MessageSquare,
-  reviews: Star, review: Star, rating: Star,
-  logo: PenTool, brand: PenTool, design: PenTool,
-  seo: FileText, content: FileText, posts: FileText,
-}
-function getIcon(label: string) {
-  const l = label.toLowerCase()
-  for (const [k, icon] of Object.entries(SERVICE_ICONS)) if (l.includes(k)) return icon
-  return FileText
-}
+interface Order { _id: string; plan?: string; service?: string; status?: string; amount?: number; amountPaid?: number; items?: ServiceItem[]; createdAt: string }
 
 const MONEY = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 })
 
@@ -72,62 +51,44 @@ export default function Progress() {
         <button onClick={load} className="cursor-pointer p-2 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors"><RefreshCw className="w-4 h-4" /></button>
       </div>
 
-      {/* Overall progress */}
-      <div className="rounded-2xl bg-neutral-surface border border-border p-5">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-semibold text-heading">Overall Progress</span>
-          <div className="flex items-center gap-3 text-xs text-muted">
-            <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-accent" /> {doneCount} done</span>
-            <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-500" /> {inProgressCount} in progress</span>
-            <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-border" /> {items.length - doneCount - inProgressCount} pending</span>
+      {/* Timeline */}
+      <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-xs text-muted uppercase tracking-wider">{order.plan || order.service || "Your Plan"}</p>
+              <p className="text-2xl font-extrabold text-heading mt-1">{pct}%</p>
+            </div>
+            <div className="w-16 h-16 rounded-full border-[5px] border-accent/20 flex items-center justify-center">
+              <span className="text-lg font-extrabold text-accent">{doneCount}<span className="text-sm text-muted font-normal">/{allItems.length}</span></span>
+            </div>
+          </div>
+          <div className="w-full h-2.5 bg-neutral-bg rounded-full overflow-hidden">
+            <div className="h-full bg-accent rounded-full transition-all duration-1000 ease-out" style={{ width: `${pct}%` }} />
           </div>
         </div>
-        <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-neutral-bg">
+        <div className="border-t border-border">
           {allItems.map((item, i) => (
-            <div key={i} className={`h-full transition-all duration-700 rounded-full ${
-              item.status === "done" ? "bg-accent" : item.status === "in_progress" ? "bg-blue-500" : "bg-border"
-            }`} style={{ width: `${100 / allItems.length}%` }} />
+            <div key={i} className={`flex items-center gap-4 px-6 py-4 relative ${item.status === "done" ? "" : "opacity-30"}`}>
+              {i < allItems.length - 1 && (
+                <div className={`absolute left-[29px] top-10 bottom-0 w-0.5 ${item.status === "done" && allItems[i + 1]?.status === "done" ? "bg-accent" : "bg-border"}`} />
+              )}
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 z-10 ${
+                item.status === "done" ? "bg-accent text-white shadow-lg shadow-accent/20" : "bg-neutral-bg border-2 border-muted text-muted"
+              }`}>
+                {item.status === "done" ? <CheckCircle2 className="w-4 h-4" /> : <span className="text-[10px] font-bold">{i + 1}</span>}
+              </div>
+              <div className="flex-1">
+                <p className={`text-sm ${item.status === "done" ? "text-heading font-semibold" : "text-muted"}`}>{item.label}</p>
+                {i === doneCount && doneCount < allItems.length && (
+                  <p className="text-[10px] text-accent mt-0.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" /> In progress</p>
+                )}
+              </div>
+              {item.status === "done" && <span className="text-[10px] text-emerald-400 font-medium">Done</span>}
+            </div>
           ))}
         </div>
       </div>
-
-      {/* Empty state */}
-      {allItems.length === 0 && (
-        <div className="rounded-2xl bg-neutral-surface border border-border p-12 text-center">
-          <Clock className="w-10 h-10 text-muted mx-auto mb-4" />
-          <h3 className="font-semibold text-heading mb-1">Waiting for services</h3>
-          <p className="text-sm text-muted">Your order is confirmed. Service tracking will begin shortly.</p>
-        </div>
-      )}
-
-      {/* Service cards */}
-      {allItems.length > 0 && (
-        <div>
-          <h2 className="text-sm font-semibold text-heading mb-3 px-1">Your Services</h2>
-          <div className="rounded-2xl bg-neutral-surface border border-border divide-y divide-border/60 overflow-hidden">
-            {allItems.map((item, i) => {
-              const Icon = item.label === "Package chosen" ? Package : item.label === "Payment completed" ? CreditCard : getIcon(item.label)
-              return (
-                <div key={i} className="flex items-center gap-4 px-5 py-4">
-                  <div className={`p-2 rounded-xl shrink-0 ${
-                    item.status === "done" ? "bg-accent/10 text-accent" :
-                    item.status === "in_progress" ? "bg-blue-500/10 text-blue-500" : "bg-neutral-bg text-muted"
-                  }`}><Icon className="w-5 h-5" /></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-heading truncate">{item.label}</p>
-                    <p className="text-xs text-muted mt-0.5">
-                      {item.status === "done" ? "Completed" : item.status === "in_progress" ? "In progress" : "Pending"}
-                    </p>
-                  </div>
-                  {item.status === "done" ? <CheckCircle2 className="w-5 h-5 text-accent shrink-0" /> :
-                   item.status === "in_progress" ? <div className="w-5 h-5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin shrink-0" /> :
-                   <Circle className="w-5 h-5 text-muted shrink-0" />}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Summary */}
       <div className="rounded-2xl bg-neutral-surface border border-border p-5">

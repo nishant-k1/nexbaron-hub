@@ -43,6 +43,13 @@ export default function ChatPage() {
   useEffect(() => { loadMessages() }, [loadMessages]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages]);
 
+  // Poll for read receipts every 10s
+  useEffect(() => {
+    if (!division) return
+    const interval = setInterval(() => loadMessages(), 10000)
+    return () => clearInterval(interval)
+  }, [division, loadMessages]);
+
   const handleFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0 || !division) return;

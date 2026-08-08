@@ -94,6 +94,32 @@ export default function ChatPage() {
     return () => clearInterval(interval)
   }, [division, loadMessages]);
 
+  // Mark agent replies as read whenever the chat page is open (authenticated
+  // customer → backend matches by customerId).
+  useEffect(() => {
+    if (!division) return
+    apiRequest(`/${division}/chat/read`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    }, division!).catch(() => {})
+  }, [division, messages])
+
+  // Presence heartbeat so the CRM shows an accurate online indicator.
+  useEffect(() => {
+    if (!division) return
+    const beat = () => {
+      apiRequest(`/${division}/chat/presence`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      }, division!).catch(() => {})
+    }
+    beat()
+    const interval = setInterval(beat, 30000)
+    return () => clearInterval(interval)
+  }, [division])
+
   // Scroll to the latest message, but only when the user is already near the
   // bottom so long threads aren't yanked while reading history.
   const scrollToLatest = useCallback(() => {

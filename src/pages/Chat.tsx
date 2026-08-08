@@ -115,12 +115,15 @@ export default function ChatPage() {
               }`}>
                 {msg.message && <p>{msg.message}</p>}
                 {msg.attachments?.map((a, i) => (
-                  <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
-                    className={`flex items-center gap-2 mt-2 p-2 rounded-lg text-xs ${
-                      msg.sender === "customer" ? "bg-white/10 hover:bg-white/20" : "bg-neutral-surface hover:bg-neutral-bg"
-                    } transition-colors`}>
-                    {getAttachIcon(a.type)} {a.name}
-                  </a>
+                  <div key={i} className="mt-2">
+                    {a.type === "image" ? (
+                      <img src={a.url} alt={a.name} className="rounded-lg max-w-full max-h-48 object-cover" />
+                    ) : (
+                      <a href={a.url} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 p-2 rounded-lg text-xs ${msg.sender === "customer" ? "bg-white/10 hover:bg-white/20" : "bg-neutral-surface hover:bg-neutral-bg"} transition-colors`}>
+                        {getAttachIcon(a.type)} {a.name}
+                      </a>
+                    )}
+                  </div>
                 ))}
                 <div className="text-[10px] mt-1 opacity-60">
                   {new Date(msg.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
@@ -136,7 +139,7 @@ export default function ChatPage() {
         <div className="flex gap-2 mt-2 flex-wrap">
           {attachments.map((a, i) => (
             <div key={i} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-surface border border-border text-xs">
-              {getAttachIcon(a.type)}
+              {a.type === "image" ? <img src={a.url} alt="" className="w-6 h-6 rounded object-cover" /> : getAttachIcon(a.type)}
               <span className="text-heading truncate max-w-[120px]">{a.name}</span>
               <button onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))} className="text-muted hover:text-red-400"><X className="w-3 h-3" /></button>
             </div>

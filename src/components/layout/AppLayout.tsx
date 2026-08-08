@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
-import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, Cpu, Printer, X, AlertTriangle, Loader2, Bell, Sun, Moon } from "lucide-react"
+import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, X, AlertTriangle, Loader2, Bell, Sun, Moon } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/auth/auth-context"
 import { useDivision, useTheme } from "@/theme/theme-provider"
@@ -168,10 +168,6 @@ export default function AppLayout() {
                 </div>
               )}
             </div>
-            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${isPrint ? "bg-amber-500/10 text-amber-400" : "bg-teal-500/10 text-teal-400"}`}>
-            {isPrint ? <Printer className="h-3 w-3" /> : <Cpu className="h-3 w-3" />}
-            {division}
-          </span>
           </div>
         </header>
         <main className="flex-1 p-6 overflow-auto">

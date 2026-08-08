@@ -69,16 +69,26 @@ export default function Dashboard() {
   const [enabled, setEnabled] = useState<Set<string>>(new Set())
   const [addOns, setAddOns] = useState<Record<string, number>>({})
   const [paying, setPaying] = useState(false)
+  const [saving, setSavingPlan] = useState(false)
 
   useEffect(() => {
     if (!division) return
     apiRequest<{ plans: CatalogPlan[] }>("/" + division + "/catalog", {}, division)
       .then((data) => {
-        const stored = localStorage.getItem("nexbaron-plan-id") || "launch"
-        const found = data.plans.find((p) => p.id === stored) || data.plans[0]
-        setPlanId(stored)
+        const config = user?.planConfig
+        const planIdFromConfig = config?.planId || localStorage.getItem("nexbaron-plan-id") || "launch"
+        const found = data.plans.find((p) => p.id === planIdFromConfig) || data.plans[0]
+        setPlanId(planIdFromConfig)
         setPlan(found)
-        setEnabled(new Set(found.services.map((s) => s.id)))
+        // Restore saved plan config or default to all services enabled
+        if (config?.removedServices) {
+          const e = new Set(found.services.map((s) => s.id))
+          config.removedServices.forEach((id: string) => e.delete(id))
+          setEnabled(e)
+        } else {
+          setEnabled(new Set(found.services.map((s) => s.id)))
+        }
+        if (config?.addOns) setAddOns(config.addOns)
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -118,6 +128,8 @@ export default function Dashboard() {
   const totalOneTime = includedOneTime + addOnOneTime
   const totalMonthly = includedMonthly + addOnMonthly
   const removedCount = plan.services.length - enabled.size
+  const addOnCount = Object.keys(addOns).length
+  const hasChanges = removedCount > 0 || addOnCount > 0
   const Icon = ICONS[planId] || Rocket
 
   return (
@@ -291,19 +303,39 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* Chat card */}
-          <Link
-            to={`/${division}/chat`}
-            className="flex items-center gap-3 p-4 rounded-2xl bg-neutral-surface border border-border hover:border-accent/20 transition-colors group"
-          >
-            <div className="p-2 rounded-lg bg-accent/10 text-accent">
-              <MessageSquare className="w-4 h-4" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-heading">Questions?</p>
-              <p className="text-xs text-muted">Chat with our team</p>
-            </div>
-            <ArrowRight className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
+          {/* Save & Chat */}
+          <div className="space-y-3">
+            {hasChanges && (
+              <button
+                onClick={async () => {
+                  setSavingPlan(true)
+                  const removed = plan.services.filter((s) => !enabled.has(s.id)).map((s) => s.id)
+                  try {
+                    await apiRequest("/" + division + "/auth/save-plan", {
+                      method: "PATCH", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ planId, removedServices: removed, addOns }),
+                    }, division)
+                  } finally { setSavingPlan(false) }
+                }}
+                disabled={saving}
+                className="cursor-pointer w-full py-3 bg-accent/10 border border-accent/30 text-accent font-bold rounded-xl hover:bg-accent/20 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+            )}
+            <Link
+              to={`/${division}/chat`}
+              className="flex items-center gap-3 p-4 rounded-2xl bg-neutral-surface border border-border hover:border-accent/20 transition-colors group"
+            >
+              <div className="p-2 rounded-lg bg-accent/10 text-accent">
+                <MessageSquare className="w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-heading">Questions?</p>
+                <p className="text-xs text-muted">Chat with our team</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
           </Link>
         </div>
       </div>

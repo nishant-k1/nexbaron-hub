@@ -43,7 +43,8 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, div
   return data as T
 }
 
+export interface PlanConfig { planId: string; removedServices: string[]; addOns: Record<string, number> }
 export interface AuthUser {
   id: string; name: string; email: string | null; phone: string | null
-  division: Division; photo?: string | null
+  division: Division; photo?: string | null; planConfig?: PlanConfig | null
 }

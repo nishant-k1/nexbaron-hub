@@ -16,7 +16,6 @@ export default function AppLayout() {
   const division = useDivision()
   const { mode, toggle } = useTheme()
   const location = useLocation()
-  const isPrint = division === "print"
 
   const NAV = [
     { to: `/${division}`, label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -87,14 +86,14 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="h-screen flex bg-neutral-bg overflow-hidden" style={{ "--accent-color": isPrint ? "#f59e0b" : "#14b8a6" } as React.CSSProperties}>
+    <div className="h-screen flex bg-neutral-bg overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-56 border-r border-border bg-neutral-surface shrink-0 flex flex-col">
-        <Link to={`/${division}`} className="p-4 border-b border-border flex items-center gap-3 hover:bg-white/5">
-          <BrandMark size={36} />
+      <aside className="w-60 h-full border-r border-border bg-neutral-surface shrink-0 flex flex-col">
+        <Link to={`/${division}`} className="p-5 border-b border-border flex items-center gap-3 hover:bg-neutral-surface/50">
+          <BrandMark size={40} />
           <div>
-            <h1 className="text-sm font-bold text-heading leading-tight">Nexbaron Hub</h1>
-            <p className="text-[10px] capitalize text-muted">{division}</p>
+            <h1 className="text-[15px] font-bold text-heading leading-tight">Nexbaron Hub</h1>
+            <p className="text-[11px] capitalize text-muted">{division} division</p>
           </div>
         </Link>
 
@@ -103,41 +102,62 @@ export default function AppLayout() {
           {NAV.map(({ to, label, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end}
               className={({ isActive }) => cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                isActive ? "bg-accent/10 text-accent" : "text-muted hover:text-heading hover:bg-white/5"
+                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                isActive ? "bg-accent/10 text-accent" : "text-muted hover:text-heading hover:bg-neutral-bg"
               )}>
-              <Icon className="h-4 w-4" /> {label}
+              {({ isActive }) => (
+                <>
+                  <Icon className="h-[18px] w-[18px]" />
+                  {label}
+                  {isActive && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r bg-accent" />
+                  )}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
 
-        <div className="p-3 border-t border-border space-y-1">
+        <div className="p-3 border-t border-border space-y-2">
           <button onClick={toggle}
-            className="cursor-pointer w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-muted hover:text-heading hover:bg-white/5 transition-colors">
-            {mode === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            {mode === "dark" ? "Light mode" : "Dark mode"}
+            className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-muted hover:text-heading hover:bg-neutral-bg transition-colors">
+            {mode === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {mode === "dark" ? "Switch to Light" : "Switch to Dark"}
           </button>
-          <div className="flex items-center gap-4 px-3 py-2.5">
-            <button onClick={() => setSettingsOpen(true)}
-              className="cursor-pointer flex items-center gap-3 flex-1 min-w-0 rounded-lg hover:bg-white/5 transition-colors">
-              <div className="w-8 h-8 rounded-full bg-accent/15 text-accent flex items-center justify-center text-xs font-bold shrink-0">{initials}</div>
-              <div className="flex-1 min-w-0 text-left">
-                <p className="text-xs font-semibold text-heading truncate">{user?.name}</p>
-                
+
+          <div className="pt-2 mt-2 border-t border-border">
+            <div className="w-full flex items-center gap-3 px-2 py-2">
+              <div className="w-9 h-9 rounded-full bg-accent/15 text-accent flex items-center justify-center text-sm font-bold">
+                {initials}
               </div>
-            </button>
-            <button onClick={signOut} title="Sign out"
-              className="cursor-pointer text-muted hover:text-red-400 shrink-0 pl-2">
-              <LogOut className="w-4 h-4" />
-            </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-heading truncate">{user?.name}</p>
+                <button onClick={() => setSettingsOpen(true)}
+                  className="cursor-pointer text-[11px] capitalize text-muted truncate block w-full text-left hover:text-accent">
+                  Account settings
+                </button>
+              </div>
+              <button
+                onClick={signOut}
+                title="Sign out"
+                className="cursor-pointer text-muted hover:text-red-500 transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       </aside>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 border-b border-border bg-neutral-surface/60 backdrop-blur flex items-center justify-between px-6 shrink-0">
-          <h2 className="text-base font-semibold text-heading">{pageTitle}</h2>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="h-16 border-b border-border bg-neutral-surface/60 backdrop-blur flex items-center justify-between px-6 shrink-0">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-heading">{pageTitle}</h2>
+            {segments.length > 1 && (
+              <span className="text-muted text-sm">/ {segments[1]}</span>
+            )}
+          </div>
           <div className="flex items-center gap-3">
             <div ref={notifRef} className="relative">
               <button onClick={() => setNotifOpen(!notifOpen)}
@@ -170,7 +190,7 @@ export default function AppLayout() {
             </div>
           </div>
         </header>
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-6 lg:p-8 overflow-auto">
           <Outlet />
         </main>
       </div>

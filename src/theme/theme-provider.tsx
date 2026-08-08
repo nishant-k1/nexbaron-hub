@@ -32,6 +32,9 @@ export function useTheme() { return useContext(ThemeContext) }
 const DivisionContext = createContext<Division | null>(null)
 
 export function DivisionProvider({ division, children }: { division: Division | null; children: React.ReactNode }) {
+  useEffect(() => {
+    if (division) document.documentElement.setAttribute("data-division", division)
+  }, [division])
   return <DivisionContext.Provider value={division}>{children}</DivisionContext.Provider>
 }
 

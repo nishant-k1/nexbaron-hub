@@ -175,7 +175,7 @@ export default function ChatPage() {
   }, [division, user, attachments, loadMessages]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex flex-col h-full">
       <div className="mb-4">
         <h2 className="text-2xl font-bold text-heading">Chat</h2>
         <p className="text-sm text-muted">Continue conversations you started on the website.</p>
@@ -191,7 +191,7 @@ export default function ChatPage() {
             <div className="text-center">
               <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30 text-muted" />
               <p className="text-sm font-medium text-heading">{loadError}</p>
-              <button onClick={loadMessages} className="cursor-pointer mt-3 px-4 py-2 bg-accent text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity">Retry</button>
+              <button onClick={() => loadMessages()} className="cursor-pointer mt-3 px-4 py-2 bg-accent text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity">Retry</button>
             </div>
           </div>
         ) : messages.length === 0 ? (

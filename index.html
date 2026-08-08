@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark" data-division="digital">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon-digital.svg" id="favicon" />
@@ -13,9 +13,10 @@
         const t = localStorage.getItem("nexbaron-hub-theme")
         if (t === "light") document.documentElement.setAttribute("data-theme", "light")
       } catch {}
-      // Brand favicon
+      // Brand favicon + division theme
       const isPrint = window.location.pathname.startsWith("/print")
       document.getElementById("favicon").href = "/favicon-" + (isPrint ? "print" : "digital") + ".svg"
+      document.documentElement.setAttribute("data-division", isPrint ? "print" : "digital")
     </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

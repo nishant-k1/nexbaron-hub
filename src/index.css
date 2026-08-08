@@ -1,41 +1,102 @@
 @import "tailwindcss";
 
-:root,
-[data-theme="dark"] {
-  --bg: #192d33;
-  --surface: #1e2a30;
-  --border-color: #2a3a40;
-  --muted: #8a949c;
+/* ---- digital division (teal/slate) — mirrors CRM theme.css ---- */
+:root[data-division="digital"][data-theme="dark"] {
+  --bg: #0f1a1f;
+  --surface: #1a2b32;
+  --surface-raised: #16242a;
+  --eyebrow: #2a4a55;
+  --eyebrow-muted: #8a949c;
   --heading: #ffffff;
-  --body: #e0e0e0;
+  --body: #d3dde2;
+  --border: #2a3a40;
+  --muted: #8a949c;
+  --accent: #2dd4bf;
+  --accent-fg: #06211c;
 }
 
-[data-theme="light"] {
-  --bg: #f1f5f9;
+:root[data-division="digital"][data-theme="light"] {
+  --bg: #f4f8f9;
   --surface: #ffffff;
-  --border-color: #e2e8f0;
-  --muted: #64748b;
-  --heading: #0f172a;
-  --body: #334155;
+  --surface-raised: #ffffff;
+  --eyebrow: #5b6b73;
+  --eyebrow-muted: #5b6b73;
+  --heading: #12262c;
+  --body: #2c3a40;
+  --border: #d7e0e3;
+  --muted: #6b7a81;
+  --accent: #0d9488;
+  --accent-fg: #ffffff;
+}
+
+/* ---- print (amber) — mirrors CRM theme.css ---- */
+:root[data-division="print"][data-theme="dark"] {
+  --bg: #16120a;
+  --surface: #201a10;
+  --surface-raised: #262012;
+  --eyebrow: #33270a;
+  --eyebrow-muted: #9a8b6b;
+  --heading: #ffffff;
+  --body: #e3ddd0;
+  --border: #3b3323;
+  --muted: #9a8b6b;
+  --accent: #fbbf24;
+  --accent-fg: #241a04;
+}
+
+:root[data-division="print"][data-theme="light"] {
+  --bg: #faf6ee;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --eyebrow: #7c5a04;
+  --eyebrow-muted: #8a7a5a;
+  --heading: #2c220b;
+  --body: #453a24;
+  --border: #e6ddc9;
+  --muted: #8a7a5a;
+  --accent: #d97706;
+  --accent-fg: #ffffff;
 }
 
 @theme {
-  --color-primary: #2a4a55;
-  --color-secondary: #8a949c;
+  --color-primary: var(--eyebrow);
+  --color-secondary: var(--eyebrow-muted);
   --color-neutral-bg: var(--bg);
-  --color-neutral-surface: var(--surface);
-  --color-border: var(--border-color);
-  --color-muted: var(--muted);
+  --color-neutral-surface: var(--surface-raised);
+  --color-surface: var(--surface);
   --color-heading: var(--heading);
   --color-body: var(--body);
-  --color-accent: var(--accent-color, #14b8a6);
-  --color-accent-fg: #020617;
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   color: var(--color-body);
   background-color: var(--color-neutral-bg);
   -webkit-font-smoothing: antialiased;
-  margin: 0;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Montserrat', sans-serif;
+  color: var(--color-heading);
 }

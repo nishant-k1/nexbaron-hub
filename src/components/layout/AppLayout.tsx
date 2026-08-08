@@ -92,7 +92,7 @@ export default function AppLayout() {
               <div className="w-8 h-8 rounded-full bg-accent/15 text-accent flex items-center justify-center text-xs font-bold shrink-0">{initials}</div>
               <div className="flex-1 min-w-0 text-left">
                 <p className="text-xs font-semibold text-heading truncate">{user?.name}</p>
-                <p className="text-[10px] text-muted">{user?.phone || ""}</p>
+                
               </div>
             </button>
             <button onClick={signOut} title="Sign out"

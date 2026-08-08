@@ -1,4 +1,4 @@
-import { Send, MessageCircle, Paperclip, X, Image, FileText, Film } from "lucide-react";
+import { Send, MessageCircle, Paperclip, X, Image, FileText, Film, Download } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiRequest } from "@/lib/api";

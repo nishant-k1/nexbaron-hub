@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { Download, Loader2, Calendar, CheckCircle2, Clock, Truck, AlertCircle, ChevronRight, Receipt, ArrowUpRight } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 
-import { apiRequest } from "@/lib/api"
+import { apiRequest, getApiUrl, getToken } from "@/lib/api"
 import { useDivision } from "@/theme/theme-provider"
 
 interface Order {
@@ -33,23 +33,35 @@ export default function Orders() {
   const navigate = useNavigate()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [downloading, setDownloading] = useState<string | null>(null)
 
   useEffect(() => {
     if (!division) return
+    setLoading(true)
+    setLoadError(null)
     apiRequest<{ orders?: Order[] }>(`/${division}/payments/orders/mine`, {}, division)
       .then((d) => setOrders(d.orders || []))
-      .catch(() => {})
+      .catch(() => setLoadError("Could not load orders"))
       .finally(() => setLoading(false))
   }, [division])
 
   const handleDownload = async (orderId: string) => {
+    if (!division) return
     setDownloading(orderId)
     try {
-      const token = localStorage.getItem('nexbaron-token-' + division)
-      if (token) {
-        window.open('/' + division + '/payments/orders/' + orderId + '/receipt?token=' + encodeURIComponent(token), '_blank')
-      }
+      const token = getToken(division)
+      if (!token) return
+      const res = await fetch(`${getApiUrl(division)}/${division}/payments/orders/${orderId}/receipt`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) return
+      const html = await res.text()
+      const blob = new Blob([html], { type: "text/html" })
+      const url = URL.createObjectURL(blob)
+      const win = window.open(url, "_blank")
+      if (win) win.addEventListener("unload", () => URL.revokeObjectURL(url))
+      else URL.revokeObjectURL(url)
     } catch { } finally { setDownloading(null) }
   }
 
@@ -57,6 +69,26 @@ export default function Orders() {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="max-w-lg mx-auto py-16 text-center">
+        <div className="w-20 h-20 mx-auto rounded-2xl bg-neutral-surface border border-border flex items-center justify-center mb-6">
+          <Receipt className="w-10 h-10 text-muted/40" />
+        </div>
+        <h1 className="text-2xl font-bold text-heading mb-2">Could not load orders</h1>
+        <p className="text-sm text-muted mb-8">{loadError}</p>
+        <button onClick={() => {
+          if (!division) return
+          setLoading(true); setLoadError(null)
+          apiRequest<{ orders?: Order[] }>(`/${division}/payments/orders/mine`, {}, division)
+            .then((d) => setOrders(d.orders || []))
+            .catch(() => setLoadError("Could not load orders"))
+            .finally(() => setLoading(false))
+        }} className="cursor-pointer px-6 py-3 bg-accent text-white font-bold rounded-xl hover:opacity-90 transition-opacity">Retry</button>
       </div>
     )
   }

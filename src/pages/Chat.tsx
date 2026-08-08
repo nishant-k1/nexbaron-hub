@@ -94,13 +94,35 @@ export default function ChatPage() {
     return () => clearInterval(interval)
   }, [division, loadMessages]);
 
-  // Auto-scroll to the latest message only when the user is already near the bottom
-  useEffect(() => {
+  // Scroll to the latest message, but only when the user is already near the
+  // bottom so long threads aren't yanked while reading history.
+  const scrollToLatest = useCallback(() => {
     const el = messagesEndRef.current?.parentElement
     if (!el) return
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
-    if (nearBottom) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
-  }, [messages]);
+    if (nearBottom) el.scrollTop = el.scrollHeight
+  }, [])
+
+  // After messages change, wait a frame for layout then snap to the bottom.
+  useEffect(() => {
+    const raf = requestAnimationFrame(scrollToLatest)
+    return () => cancelAnimationFrame(raf)
+  }, [messages, scrollToLatest])
+
+  // Messages can grow after the messages effect runs (images/video decode
+  // asynchronously). While pinned near the bottom, follow every content-size
+  // change so the newest message never lands half off-screen.
+  useEffect(() => {
+    const el = messagesEndRef.current?.parentElement
+    if (!el) return
+    let raf = 0
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(scrollToLatest)
+    })
+    observer.observe(el)
+    return () => { observer.disconnect(); cancelAnimationFrame(raf) }
+  }, [scrollToLatest]);
 
   const handleFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);

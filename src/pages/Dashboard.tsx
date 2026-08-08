@@ -14,6 +14,8 @@ import {
   Package,
   ShoppingBag,
   Loader2,
+  MessageSquare,
+  Loader2,
 } from "lucide-react"
 
 import { useAuth } from "@/auth/auth-context"
@@ -80,7 +82,6 @@ export default function Dashboard() {
         const found = data.plans.find((p) => p.id === planIdFromConfig) || data.plans[0]
         setPlanId(planIdFromConfig)
         setPlan(found)
-        // Restore saved plan config or default to all services enabled
         if (config?.removedServices) {
           const e = new Set(found.services.map((s) => s.id))
           config.removedServices.forEach((id: string) => e.delete(id))
@@ -324,19 +325,20 @@ export default function Dashboard() {
                 {saving ? "Saving..." : "Save Changes"}
               </button>
             )}
-            <Link
-              to={`/${division}/chat`}
-              className="flex items-center gap-3 p-4 rounded-2xl bg-neutral-surface border border-border hover:border-accent/20 transition-colors group"
-            >
-              <div className="p-2 rounded-lg bg-accent/10 text-accent">
-                <MessageSquare className="w-4 h-4" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-heading">Questions?</p>
-                <p className="text-xs text-muted">Chat with our team</p>
-              </div>
-              <ArrowRight className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
+          <Link
+            to={`/${division}/chat`}
+            className="flex items-center gap-3 p-4 rounded-2xl bg-neutral-surface border border-border hover:border-accent/20 transition-colors group"
+          >
+            <div className="p-2 rounded-lg bg-accent/10 text-accent">
+              <MessageSquare className="w-4 h-4" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-heading">Questions?</p>
+              <p className="text-xs text-muted">Chat with our team</p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-muted group-hover:text-accent transition-colors" />
           </Link>
+          </div>
         </div>
       </div>
     </div>

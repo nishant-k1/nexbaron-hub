@@ -119,13 +119,13 @@ export default function ChatPage() {
                     {a.type === "image" ? (
                       <div className="relative group">
                         <img src={a.url} alt={a.name} className="rounded-lg max-w-full max-h-48 object-cover" />
-                        <a href={a.url} download={a.name} target="_blank" rel="noopener noreferrer"
+                        <a href={a.url.replace("/upload/", "/upload/fl_attachment/")} download={a.name} target="_blank" rel="noopener noreferrer"
                           className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-black/50 text-white hover:bg-black/70 transition-colors opacity-0 group-hover:opacity-100">
                           <Download className="w-3.5 h-3.5" />
                         </a>
                       </div>
                     ) : (
-                      <a href={a.url} download={a.name} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 p-2 rounded-lg text-xs ${msg.sender === "customer" ? "bg-white/10 hover:bg-white/20" : "bg-neutral-surface hover:bg-neutral-bg"} transition-colors`}>
+                      <a href={a.url.replace("/upload/", "/upload/fl_attachment/")} download={a.name} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 p-2 rounded-lg text-xs ${msg.sender === "customer" ? "bg-white/10 hover:bg-white/20" : "bg-neutral-surface hover:bg-neutral-bg"} transition-colors`}>
                         {getAttachIcon(a.type)} {a.name}
                         <Download className="w-3 h-3 ml-1" />
                       </a>

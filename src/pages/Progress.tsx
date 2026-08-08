@@ -1,4 +1,4 @@
-import { Clock, Loader2, CheckCircle2, Circle, RefreshCw, Globe, MapPin, Phone, Star, PenTool, FileText, MessageSquare } from "lucide-react";
+import { Clock, Loader2, CheckCircle2, Circle, RefreshCw, Globe, MapPin, Phone, Star, PenTool, FileText, MessageSquare, Package, CreditCard } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { useDivision } from "@/theme/theme-provider";
@@ -53,9 +53,14 @@ export default function Progress() {
   )
 
   const items = order.items?.length ? order.items : []
-  const doneCount = items.filter((i) => i.status === "done").length
-  const inProgressCount = items.filter((i) => i.status === "in_progress").length
-  const pct = items.length > 0 ? Math.round((doneCount / items.length) * 100) : 0
+  const allItems: ServiceItem[] = [
+    { label: "Package chosen", status: "done" },
+    { label: "Payment completed", status: (order.status === "paid" || order.status === "in_progress" || order.status === "delivered") ? "done" : "pending" },
+    ...items,
+  ]
+  const doneCount = allItems.filter((i) => i.status === "done").length
+  const inProgressCount = allItems.filter((i) => i.status === "in_progress").length
+  const pct = allItems.length > 0 ? Math.round((doneCount / allItems.length) * 100) : 0
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -78,16 +83,16 @@ export default function Progress() {
           </div>
         </div>
         <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-neutral-bg">
-          {items.map((item, i) => (
+          {allItems.map((item, i) => (
             <div key={i} className={`h-full transition-all duration-700 rounded-full ${
               item.status === "done" ? "bg-accent" : item.status === "in_progress" ? "bg-blue-500" : "bg-border"
-            }`} style={{ width: `${100 / items.length}%` }} />
+            }`} style={{ width: `${100 / allItems.length}%` }} />
           ))}
         </div>
       </div>
 
       {/* Empty state */}
-      {items.length === 0 && (
+      {allItems.length === 0 && (
         <div className="rounded-2xl bg-neutral-surface border border-border p-12 text-center">
           <Clock className="w-10 h-10 text-muted mx-auto mb-4" />
           <h3 className="font-semibold text-heading mb-1">Waiting for services</h3>
@@ -96,12 +101,12 @@ export default function Progress() {
       )}
 
       {/* Service cards */}
-      {items.length > 0 && (
+      {allItems.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-heading mb-3 px-1">Your Services</h2>
           <div className="rounded-2xl bg-neutral-surface border border-border divide-y divide-border/60 overflow-hidden">
-            {items.map((item, i) => {
-              const Icon = getIcon(item.label)
+            {allItems.map((item, i) => {
+              const Icon = item.label === "Package chosen" ? Package : item.label === "Payment completed" ? CreditCard : getIcon(item.label)
               return (
                 <div key={i} className="flex items-center gap-4 px-5 py-4">
                   <div className={`p-2 rounded-xl shrink-0 ${
@@ -134,7 +139,7 @@ export default function Progress() {
             }`}>{order.status === "in_progress" ? "In Progress" : order.status || "pending"}</span>
           </div>
           <div><p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Amount</p><p className="text-sm font-bold text-heading">{MONEY.format(order.amount || 0)}</p></div>
-          <div><p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Services</p><p className="text-sm font-bold text-heading">{doneCount}/{items.length} done</p></div>
+          <div><p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Services</p><p className="text-sm font-bold text-heading">{doneCount}/{allItems.length} done</p></div>
           <div><p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Since</p><p className="text-sm font-medium text-heading">{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p></div>
         </div>
       </div>

@@ -71,7 +71,7 @@ export default function AppLayout() {
       await apiRequest(`/${division}/auth/update-profile`, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profileForm),
-      }, division)
+      }, division!)
       setSettingsOpen(false); window.location.reload()
     } catch { setSettingsError("Failed to update profile") } finally { setSaving(false) }
   }

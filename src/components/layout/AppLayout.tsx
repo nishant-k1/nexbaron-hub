@@ -1,9 +1,10 @@
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
-import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, Cpu, Printer, Moon, Sun, Settings, User, X, Mail, Phone, ChevronRight } from "lucide-react"
-import { useState, useRef, useEffect } from "react"
+import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, Cpu, Printer, Settings, X, AlertTriangle, Loader2, ChevronRight } from "lucide-react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/auth/auth-context"
-import { useDivision, useTheme } from "@/theme/theme-provider"
+import { useDivision } from "@/theme/theme-provider"
 import { cn } from "@/lib/cn"
+import { apiRequest } from "@/lib/api"
 
 const PAGE_TITLES: Record<string, string> = {
   "": "Dashboard", orders: "My Orders", progress: "Progress", chat: "Chat",
@@ -12,10 +13,8 @@ const PAGE_TITLES: Record<string, string> = {
 export default function AppLayout() {
   const { user, signOut } = useAuth()
   const division = useDivision()
-  const { mode, toggle } = useTheme()
   const location = useLocation()
   const isPrint = division === "print"
-  const accent = isPrint ? "amber" : "teal"
 
   const NAV = [
     { to: `/${division}`, label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -28,18 +27,38 @@ export default function AppLayout() {
   const pageTitle = PAGE_TITLES[segments[0] || ""] || segments[0] || "Dashboard"
   const initials = (user?.name || "?").split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase()
 
-  const [menuOpen, setMenuOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [profileForm, setProfileForm] = useState({ name: "", email: "", phone: "" })
+  const [settingsError, setSettingsError] = useState("")
 
   useEffect(() => {
-    if (!menuOpen) return
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    if (settingsOpen) {
+      setProfileForm({ name: user?.name || "", email: user?.email || "", phone: user?.phone || "" })
+      setDeleteConfirm(false)
+      setSettingsError("")
     }
-    document.addEventListener("mousedown", handler)
-    return () => document.removeEventListener("mousedown", handler)
-  }, [menuOpen])
+  }, [settingsOpen, user])
+
+  const handleUpdateProfile = async () => {
+    setSaving(true); setSettingsError("")
+    try {
+      await apiRequest(`/${division}/auth/update-profile`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profileForm),
+      }, division)
+      setSettingsOpen(false); window.location.reload()
+    } catch { setSettingsError("Failed to update profile") } finally { setSaving(false) }
+  }
+
+  const handleDeleteAccount = async () => {
+    setSaving(true)
+    try {
+      await apiRequest(`/${division}/auth/delete-account`, { method: "DELETE" }, division)
+      signOut()
+    } catch { setSettingsError("Failed to delete account"); setSaving(false) }
+  }
 
   return (
     <div className="h-screen flex bg-neutral-bg overflow-hidden" style={{ "--accent-color": isPrint ? "#f59e0b" : "#14b8a6" } as React.CSSProperties}>
@@ -66,63 +85,33 @@ export default function AppLayout() {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-border">
-          <Link to="/" target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted hover:text-heading hover:bg-white/5 transition-colors">
-            <Cpu className="h-4 w-4" />
-            Website
-            <ChevronRight className="h-3 w-3 ml-auto" />
-          </Link>
+        <div className="p-3 border-t border-border space-y-2">
+          <div className="flex items-center gap-3 px-2 py-2">
+            <div className="w-8 h-8 rounded-full bg-accent/15 text-accent flex items-center justify-center text-xs font-bold">{initials}</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-heading truncate">{user?.name}</p>
+              <p className="text-[10px] text-muted">{user?.email || user?.phone}</p>
+            </div>
+          </div>
+          <button onClick={() => setSettingsOpen(true)}
+            className="cursor-pointer w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs text-muted hover:text-heading hover:bg-white/5 transition-colors">
+            <Settings className="w-3.5 h-3.5" /> Account Settings
+          </button>
+          <button onClick={signOut}
+            className="cursor-pointer w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs text-muted hover:text-red-400 hover:bg-red-500/5 transition-colors">
+            <LogOut className="w-3.5 h-3.5" /> Sign out
+          </button>
         </div>
       </aside>
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Topbar */}
         <header className="h-14 border-b border-border bg-neutral-surface/60 backdrop-blur flex items-center justify-between px-6 shrink-0">
           <h2 className="text-base font-semibold text-heading">{pageTitle}</h2>
-          <div className="flex items-center gap-3">
-            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${isPrint ? "bg-amber-500/10 text-amber-400" : "bg-teal-500/10 text-teal-400"}`}>
-              {isPrint ? <Printer className="h-3 w-3" /> : <Cpu className="h-3 w-3" />}
-              {division}
-            </span>
-
-            {/* User menu */}
-            <div ref={menuRef} className="relative">
-              <button onClick={() => setMenuOpen(!menuOpen)}
-                className="cursor-pointer flex items-center gap-2 pl-2 pr-1 py-1 rounded-lg hover:bg-white/5 transition-colors">
-                <div className="w-7 h-7 rounded-full bg-accent/15 text-accent flex items-center justify-center text-xs font-bold">
-                  {initials}
-                </div>
-              </button>
-
-              {menuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-neutral-surface border border-border rounded-xl shadow-2xl z-50 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-border">
-                    <p className="text-sm font-semibold text-heading">{user?.name}</p>
-                    <p className="text-xs text-muted mt-0.5">{user?.email || user?.phone}</p>
-                  </div>
-                  <div className="py-1">
-                    <button onClick={() => { setSettingsOpen(true); setMenuOpen(false) }}
-                      className="cursor-pointer w-full flex items-center gap-3 px-4 py-2.5 text-sm text-body hover:bg-neutral-bg transition-colors">
-                      <Settings className="w-4 h-4 text-muted" /> Settings
-                    </button>
-                    <button onClick={toggle}
-                      className="cursor-pointer w-full flex items-center gap-3 px-4 py-2.5 text-sm text-body hover:bg-neutral-bg transition-colors">
-                      {mode === "dark" ? <Sun className="w-4 h-4 text-muted" /> : <Moon className="w-4 h-4 text-muted" />}
-                      {mode === "dark" ? "Light mode" : "Dark mode"}
-                    </button>
-                  </div>
-                  <div className="border-t border-border py-1">
-                    <button onClick={signOut}
-                      className="cursor-pointer w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/5 transition-colors">
-                      <LogOut className="w-4 h-4" /> Sign out
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${isPrint ? "bg-amber-500/10 text-amber-400" : "bg-teal-500/10 text-teal-400"}`}>
+            {isPrint ? <Printer className="h-3 w-3" /> : <Cpu className="h-3 w-3" />}
+            {division}
+          </span>
         </header>
         <main className="flex-1 p-6 overflow-auto">
           <Outlet />
@@ -132,39 +121,55 @@ export default function AppLayout() {
       {/* Settings Modal */}
       {settingsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setSettingsOpen(false)}>
-          <div className="bg-neutral-surface border border-border rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-neutral-surface border border-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h2 className="text-lg font-bold text-heading">Settings</h2>
-              <button onClick={() => setSettingsOpen(false)} className="cursor-pointer text-muted hover:text-heading">
-                <X className="w-5 h-5" />
-              </button>
+              <h2 className="text-lg font-bold text-heading">Account Settings</h2>
+              <button onClick={() => setSettingsOpen(false)} className="cursor-pointer text-muted hover:text-heading"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 space-y-4">
               <div className="flex items-center gap-4 pb-4 border-b border-border">
-                <div className="w-12 h-12 rounded-full bg-accent/10 border border-accent/20 text-accent flex items-center justify-center text-lg font-bold">
-                  {initials}
-                </div>
+                <div className="w-14 h-14 rounded-full bg-accent/10 border border-accent/20 text-accent flex items-center justify-center text-xl font-bold">{initials}</div>
                 <div>
                   <p className="font-semibold text-heading">{user?.name}</p>
-                  <p className="text-xs text-muted">{user?.email || user?.phone}</p>
+                  <p className="text-xs text-muted">Update your account details below</p>
                 </div>
               </div>
               <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm">
-                  <User className="w-4 h-4 text-muted" />
-                  <span className="text-muted w-14">Name</span>
-                  <span className="text-heading">{user?.name || "—"}</span>
+                <div><label className="block text-xs text-muted mb-1">Name</label>
+                  <input value={profileForm.name} onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-neutral-bg border border-border rounded-xl text-sm text-heading focus:outline-none focus:border-accent/50" />
                 </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <Mail className="w-4 h-4 text-muted" />
-                  <span className="text-muted w-14">Email</span>
-                  <span className="text-heading">{user?.email || "—"}</span>
+                <div><label className="block text-xs text-muted mb-1">Email</label>
+                  <input type="email" value={profileForm.email} onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                    className="w-full px-3 py-2 bg-neutral-bg border border-border rounded-xl text-sm text-heading focus:outline-none focus:border-accent/50" />
                 </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <Phone className="w-4 h-4 text-muted" />
-                  <span className="text-muted w-14">Phone</span>
-                  <span className="text-heading">{user?.phone || "—"}</span>
+                <div><label className="block text-xs text-muted mb-1">Phone</label>
+                  <input type="tel" value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                    className="w-full px-3 py-2 bg-neutral-bg border border-border rounded-xl text-sm text-heading focus:outline-none focus:border-accent/50" />
                 </div>
+              </div>
+              {settingsError && <p className="text-sm text-red-400">{settingsError}</p>}
+              <button onClick={handleUpdateProfile} disabled={saving}
+                className="cursor-pointer w-full py-2.5 bg-accent text-white font-bold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Save Changes
+              </button>
+              <div className="pt-4 border-t border-border">
+                {!deleteConfirm ? (
+                  <button onClick={() => setDeleteConfirm(true)}
+                    className="cursor-pointer w-full py-2.5 border border-red-500/30 text-red-400 rounded-xl font-medium hover:bg-red-500/5 transition-colors flex items-center justify-center gap-2">
+                    <AlertTriangle className="w-4 h-4" /> Delete Account
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-red-400 text-center">This is permanent. All your data will be deleted.</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setDeleteConfirm(false)} className="cursor-pointer flex-1 py-2.5 border border-border rounded-xl font-medium hover:bg-neutral-bg transition-colors text-sm">Cancel</button>
+                      <button onClick={handleDeleteAccount} disabled={saving} className="cursor-pointer flex-1 py-2.5 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 disabled:opacity-50 transition-colors text-sm flex items-center justify-center gap-1.5">
+                        {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null} Yes, Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

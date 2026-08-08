@@ -1,7 +1,7 @@
 import { Send, MessageCircle, Paperclip, X, Image, FileText, Film, Download, CheckCheck, ExternalLink } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { apiRequest } from "@/lib/api";
+import { apiRequest, getApiUrl } from "@/lib/api";
 import { useAuth } from "@/auth/auth-context";
 import { useDivision } from "@/theme/theme-provider";
 
@@ -35,8 +35,13 @@ function renderAsImage(a: ChatAttachment): boolean {
 }
 
 // fl_attachment forces a file download; the plain URL lets the browser preview.
-function downloadUrl(a: ChatAttachment): string {
-  return a.url.replace("/upload/", "/upload/fl_attachment/")
+// R2 URLs have no /upload/ segment — proxy through the API to force download.
+function downloadUrl(a: ChatAttachment, division: string | null): string {
+  if (a.url.includes("/upload/")) {
+    return a.url.replace("/upload/", "/upload/fl_attachment/")
+  }
+  const api = getApiUrl(division as "digital" | "print")
+  return `${api}/${division}/chat/download?url=${encodeURIComponent(a.url)}&name=${encodeURIComponent(a.name)}`
 }
 
 function getAttachIcon(type: string) {
@@ -60,25 +65,42 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const loadMessages = useCallback(() => {
+  const sameList = (a: ChatMessage[], b: ChatMessage[]) =>
+    a.length === b.length &&
+    a.every((m, i) =>
+      m._id === b[i]._id && m.message === b[i].message && m.isRead === b[i].isRead &&
+      m.sender === b[i].sender && (m.attachments?.length || 0) === (b[i].attachments?.length || 0)
+    )
+
+  // `initial` shows the loading spinner; polling refreshes silently in-place.
+  const loadMessages = useCallback((initial = false) => {
     if (!division) return;
-    setLoading(true);
-    setLoadError(null);
+    if (initial) { setLoading(true); setLoadError(null); }
     apiRequest<{ success: boolean; messages: ChatMessage[] }>(`/${division}/chat`, {}, division!)
-      .then((data) => setMessages(data.messages || []))
-      .catch(() => setLoadError("Could not load conversations"))
-      .finally(() => setLoading(false));
+      .then((data) => setMessages((prev) => {
+        const next = data.messages || [];
+        return sameList(prev, next) ? prev : next;
+      }))
+      .catch(() => { if (initial) setLoadError("Could not load conversations") })
+      .finally(() => { if (initial) setLoading(false) });
   }, [division]);
 
-  useEffect(() => { loadMessages() }, [loadMessages]);
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages]);
+  useEffect(() => { loadMessages(true) }, [loadMessages]);
 
-  // Poll for read receipts every 10s
+  // Poll for new chats / read receipts every 10s without flashing the spinner
   useEffect(() => {
     if (!division) return
-    const interval = setInterval(() => loadMessages(), 10000)
+    const interval = setInterval(() => loadMessages(false), 10000)
     return () => clearInterval(interval)
   }, [division, loadMessages]);
+
+  // Auto-scroll to the latest message only when the user is already near the bottom
+  useEffect(() => {
+    const el = messagesEndRef.current?.parentElement
+    if (!el) return
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+    if (nearBottom) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
+  }, [messages]);
 
   const handleFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -86,24 +108,26 @@ export default function ChatPage() {
     setUploading(true);
     setUploadError(null);
     try {
-      const sig = await apiRequest<{ cloudName: string; apiKey: string; timestamp: number; signature: string; uploadUrl: string }>(
-        `/${division}/upload-signature`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ folder: `nexbaron-chat-${division}` }) }, division!
+      const sig = await apiRequest<{ success: boolean; files: { key: string; uploadUrl: string; publicUrl: string }[] }>(
+        `/${division}/upload`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ files: files.map(f => ({ name: f.name, size: f.size })) }) }, division!
       );
       const newAttachments: ChatAttachment[] = [];
-      for (const file of files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const target = sig.files[i];
+        if (!target) continue;
         if (file.size > MAX_FILE_SIZE) { alert(`${file.name} is too large (max 10MB)`); continue }
-        const fd = new FormData()
-        fd.append("file", file); fd.append("api_key", sig.apiKey)
-        fd.append("timestamp", String(sig.timestamp)); fd.append("signature", sig.signature)
-        fd.append("folder", `nexbaron-chat-${division}`)
-        const res = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/auto/upload`, { method: "POST", body: fd })
-        const json = await res.json()
-        if (!res.ok || !json.secure_url) {
-          setUploadError(json?.error?.message || `Could not upload ${file.name}`)
+        const res = await fetch(target.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type || "application/octet-stream" },
+          body: file,
+        })
+        if (!res.ok) {
+          setUploadError(`Could not upload ${file.name} (${res.status})`)
           continue
         }
         newAttachments.push({
-          url: json.secure_url, name: file.name, size: file.size,
+          url: target.publicUrl, name: file.name, size: file.size,
           type: typeFromFile(file),
         })
       }
@@ -168,7 +192,7 @@ export default function ChatPage() {
                     {renderAsImage(a) ? (
                       <div className="relative group">
                         <img src={a.url} alt={a.name} className="rounded-lg max-w-full max-h-48 object-cover" />
-                        <a href={downloadUrl(a)} download={a.name} target="_blank" rel="noopener noreferrer"
+                        <a href={downloadUrl(a, division)} download={a.name} target="_blank" rel="noopener noreferrer"
                           className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-black/50 text-white hover:bg-black/70 transition-colors opacity-0 group-hover:opacity-100">
                           <Download className="w-3.5 h-3.5" />
                         </a>
@@ -182,7 +206,7 @@ export default function ChatPage() {
                           <span className="sr-only">Open</span>
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
-                        <a href={downloadUrl(a)} download={a.name} title="Download" aria-label={`Download ${a.name}`}
+                        <a href={downloadUrl(a, division)} download={a.name} title="Download" aria-label={`Download ${a.name}`}
                           className="p-1 rounded hover:bg-white/10 transition-colors">
                           <Download className="w-3.5 h-3.5" />
                         </a>

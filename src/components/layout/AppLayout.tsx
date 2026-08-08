@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
-import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, Cpu, Printer, X, AlertTriangle, Loader2, ChevronRight } from "lucide-react"
+import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, Cpu, Printer, X, AlertTriangle, Loader2, ChevronRight, Bell } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/auth/auth-context"
 import { useDivision } from "@/theme/theme-provider"

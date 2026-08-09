@@ -96,6 +96,9 @@ export default function ChatPage() {
   const loadOlderMessages = useCallback(async () => {
     if (!division || !hasMore || loadingOlder) return
     setLoadingOlder(true)
+    const panel = messagesEndRef.current?.parentElement
+    const prevScrollHeight = panel?.scrollHeight ?? 0
+    const prevScrollTop = panel?.scrollTop ?? 0
     try {
       const oldest = messages[0]
       const data = await chatApiRequest<{ success: boolean; messages: ChatMessage[]; hasMore?: boolean }>(
@@ -103,6 +106,10 @@ export default function ChatPage() {
       )
       setMessages((prev) => [...(data.messages || []), ...prev])
       setHasMore(!!data.hasMore)
+      requestAnimationFrame(() => {
+        const el = messagesEndRef.current?.parentElement
+        if (el && prevScrollHeight) el.scrollTop = el.scrollHeight - prevScrollHeight + prevScrollTop
+      })
     } catch { /* keep */ }
     finally { setLoadingOlder(false) }
   }, [division, hasMore, loadingOlder, messages])
@@ -159,13 +166,11 @@ export default function ChatPage() {
     return () => clearInterval(interval)
   }, [division])
 
-  // Scroll to the latest message, but only when the user is already near the
-  // bottom so long threads aren't yanked while reading history.
+  // Always scroll to the latest message so new content is visible.
   const scrollToLatest = useCallback(() => {
     const el = messagesEndRef.current?.parentElement
     if (!el) return
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
-    if (nearBottom) el.scrollTop = el.scrollHeight
+    el.scrollTop = el.scrollHeight
   }, [])
 
   // After messages change, wait a frame for layout then snap to the bottom.

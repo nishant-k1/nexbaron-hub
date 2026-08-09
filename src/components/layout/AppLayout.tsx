@@ -5,7 +5,7 @@ import { useAuth } from "@/auth/auth-context"
 import { useDivision, useTheme } from "@/theme/theme-provider"
 import { BrandMark } from "@/components/brand/BrandMark"
 import { cn } from "@/lib/cn"
-import { apiRequest } from "@/lib/api"
+import { apiRequest, chatApiRequest } from "@/lib/api"
 
 const PAGE_TITLES: Record<string, string> = {
   "": "Dashboard", orders: "My Orders", progress: "Progress", chat: "Chat",
@@ -40,7 +40,7 @@ export default function AppLayout() {
   useEffect(() => {
     if (!division) return
     const poll = () => {
-      apiRequest<{ success: boolean; messages?: Array<{ isRead: boolean; sender: string }> }>(`/${division}/chat`, {}, division!)
+      chatApiRequest<{ success: boolean; messages?: Array<{ isRead: boolean; sender: string }> }>(`/${division}/chat`, {}, division!)
         .then((d) => {
           const msgs = d.messages || []
           setUnreadCount(msgs.filter((m) => m.sender === "agent" && !m.isRead).length)

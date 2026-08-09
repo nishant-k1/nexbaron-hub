@@ -1,7 +1,7 @@
 import { Send, MessageCircle, Paperclip, X, Image, FileText, Film, Download, CheckCheck, ExternalLink } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { apiRequest, getApiUrl } from "@/lib/api";
+import { apiRequest, chatApiRequest, getChatUrl } from "@/lib/api";
 import { useAuth } from "@/auth/auth-context";
 import { useDivision } from "@/theme/theme-provider";
 
@@ -40,7 +40,7 @@ function downloadUrl(a: ChatAttachment, division: string | null): string {
   if (a.url.includes("/upload/")) {
     return a.url.replace("/upload/", "/upload/fl_attachment/")
   }
-  const api = getApiUrl(division as "digital" | "print")
+  const api = getChatUrl()
   return `${api}/${division}/chat/download?url=${encodeURIComponent(a.url)}&name=${encodeURIComponent(a.name)}`
 }
 
@@ -76,7 +76,7 @@ export default function ChatPage() {
   const loadMessages = useCallback((initial = false) => {
     if (!division) return;
     if (initial) { setLoading(true); setLoadError(null); }
-    apiRequest<{ success: boolean; messages: ChatMessage[] }>(`/${division}/chat`, {}, division!)
+    chatApiRequest<{ success: boolean; messages: ChatMessage[] }>(`/${division}/chat`, {}, division!)
       .then((data) => setMessages((prev) => {
         const next = data.messages || [];
         return sameList(prev, next) ? prev : next;
@@ -84,7 +84,6 @@ export default function ChatPage() {
       .catch(() => { if (initial) setLoadError("Could not load conversations") })
       .finally(() => { if (initial) setLoading(false) });
   }, [division]);
-
   useEffect(() => { loadMessages(true) }, [loadMessages]);
 
   // Poll for new chats / read receipts every 10s without flashing the spinner
@@ -98,7 +97,7 @@ export default function ChatPage() {
   // customer → backend matches by customerId).
   useEffect(() => {
     if (!division) return
-    apiRequest(`/${division}/chat/read`, {
+    chatApiRequest(`/${division}/chat/read`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
@@ -109,7 +108,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (!division) return
     const beat = () => {
-      apiRequest(`/${division}/chat/presence`, {
+      chatApiRequest(`/${division}/chat/presence`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
@@ -156,7 +155,7 @@ export default function ChatPage() {
     setUploading(true);
     setUploadError(null);
     try {
-      const sig = await apiRequest<{ success: boolean; files: { key: string; uploadUrl: string; publicUrl: string }[] }>(
+      const sig = await chatApiRequest<{ success: boolean; files: { key: string; uploadUrl: string; publicUrl: string }[] }>(
         `/${division}/upload`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ files: files.map(f => ({ name: f.name, size: f.size })) }) }, division!
       );
       const newAttachments: ChatAttachment[] = [];
@@ -188,7 +187,7 @@ export default function ChatPage() {
     setSending(true);
     setSendError(null);
     try {
-      await apiRequest(`/${division}/chat`, {
+      await chatApiRequest(`/${division}/chat`, {
         method: "POST",
         body: JSON.stringify({
           message: text.trim(), name: user?.name, email: user?.email, phone: user?.phone,

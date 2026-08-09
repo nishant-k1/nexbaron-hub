@@ -9,6 +9,13 @@ export function getApiUrl(division: Division): string {
   return url.replace(/\/$/, "")
 }
 
+// Dedicated chat service — serves BOTH divisions from one host (division in path).
+const CHAT_URL_FALLBACK = import.meta.env.VITE_CHAT_URL || "https://chat.nexbaron.com"
+
+export function getChatUrl(): string {
+  return (import.meta.env.VITE_CHAT_URL || CHAT_URL_FALLBACK).replace(/\/$/, "")
+}
+
 const TOKEN_KEY = "nexbaron-hub-token"
 
 export function authTokenKey(division: Division): string {
@@ -40,6 +47,20 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, div
   })
   const data = await response.json().catch(() => null)
   if (!response.ok) throw new Error(data?.message ?? `Request failed: ${response.status}`)
+  return data as T
+}
+
+/**
+ * Chat requests hit the dedicated chat service (both divisions from one host).
+ * Same auth headers as the main API.
+ */
+export async function chatApiRequest<T>(path: string, options: RequestInit = {}, division: Division): Promise<T> {
+  const response = await fetch(`${getChatUrl()}${path}`, {
+    ...options,
+    headers: { ...getAuthHeaders(division), ...(options.headers ?? {}) },
+  })
+  const data = await response.json().catch(() => null)
+  if (!response.ok) throw new Error(data?.message ?? `Chat request failed: ${response.status}`)
   return data as T
 }
 

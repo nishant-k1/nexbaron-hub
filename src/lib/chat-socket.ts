@@ -26,13 +26,17 @@ export function connectChatSocket(options: {
   if (!division) return null
 
   const socket = io(getChatUrl(), {
-    transports: ["websocket", "polling"],
+    transports: ["websocket"],
     auth: {
       division,
       ...(token ? { token } : {}),
       ...(!token && sessionId ? { sessionId } : {}),
     },
   })
+
+  socket.on("connect", () => console.log("[hub-chat] Connected to", division))
+  socket.on("connect_error", (err) => console.warn("[hub-chat] Connect error:", err.message))
+  socket.on("disconnect", (reason) => console.log("[hub-chat] Disconnected:", reason))
 
   ;(Object.keys({
     "message:new": 1,

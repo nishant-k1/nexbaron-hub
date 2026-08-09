@@ -40,13 +40,21 @@ export function getAuthHeaders(division: Division): Record<string, string> {
   }
 }
 
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 export async function apiRequest<T>(path: string, options: RequestInit = {}, division: Division): Promise<T> {
   const response = await fetch(`${getApiUrl(division)}${path}`, {
     ...options,
     headers: { ...getAuthHeaders(division), ...(options.headers ?? {}) },
   })
   const data = await response.json().catch(() => null)
-  if (!response.ok) throw new Error(data?.message ?? `Request failed: ${response.status}`)
+  if (!response.ok) throw new ApiError(data?.message ?? `Request failed: ${response.status}`, response.status)
   return data as T
 }
 

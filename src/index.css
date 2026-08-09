@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+button, [role="button"], select, input[type="checkbox"], input[type="radio"] {
+  cursor: pointer;
+}
+
 /* ---- digital division (teal/slate) — mirrors CRM theme.css ---- */
 :root[data-division="digital"][data-theme="dark"] {
   --bg: #0f1a1f;

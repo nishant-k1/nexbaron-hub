@@ -118,13 +118,23 @@ This is the Stripe / Linear / Vercel pattern.
 
 ### Clickable Elements
 
-Every interactive element must have a cursor pointer:
+**CRITICAL — Tailwind v4 preflight kills `cursor: pointer` on ALL elements.** Native browser cursors do NOT work. Every interactive element MUST have `cursor-pointer`:
 
-- `<button>` — natively gets `cursor: pointer`, no extra class needed.
-- `<a href="...">` — natively gets `cursor: pointer`, no extra class needed.
+- `<button>` — **REQUIRES `cursor-pointer`** in className. Tailwind v4 preflight removes the native `cursor: pointer`.
+- `<a href="...">` — natively gets `cursor: pointer`, but add `cursor-pointer` for safety.
 - `<div onClick={...}>`, `<span onClick={...}>`, `<tr onClick={...}>` — must include `cursor-pointer`.
-- Any element with `onClick` that is not a native `<button>` or `<a>` — must include `cursor-pointer`.
+- `<select>`, `<input type="checkbox">`, `<input type="radio">` — must include `cursor-pointer`.
+- Any element with `onClick` — must include `cursor-pointer`.
 - `hover:` transitions on clickable rows: `hover:bg-neutral-bg cursor-pointer transition-colors`.
+
+**Global CSS fix (do NOT remove):**
+```css
+@import "tailwindcss";
+button, [role="button"], select, input[type="checkbox"], input[type="radio"] {
+  cursor: pointer;
+}
+```
+This lives in `src/index.css` right after the tailwind import. Never delete it.
 
 ### Data Source of Truth
 

@@ -13,6 +13,7 @@
   --muted: #8a949c;
   --accent: #2dd4bf;
   --accent-fg: #06211c;
+  --accent-dim: #0f4f48;
 }
 
 :root[data-division="digital"][data-theme="light"] {
@@ -27,6 +28,7 @@
   --muted: #6b7a81;
   --accent: #0d9488;
   --accent-fg: #ffffff;
+  --accent-dim: #0f766e;
 }
 
 /* ---- print (amber) — mirrors CRM theme.css ---- */
@@ -42,6 +44,7 @@
   --muted: #9a8b6b;
   --accent: #fbbf24;
   --accent-fg: #241a04;
+  --accent-dim: #3a2c06;
 }
 
 :root[data-division="print"][data-theme="light"] {
@@ -56,6 +59,7 @@
   --muted: #8a7a5a;
   --accent: #d97706;
   --accent-fg: #ffffff;
+  --accent-dim: #b45309;
 }
 
 @theme {

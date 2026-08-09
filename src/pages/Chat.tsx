@@ -282,7 +282,7 @@ export default function ChatPage() {
             {messages.map((msg) => (
             <div key={msg._id} className={`flex ${msg.sender === "customer" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm ${
-                msg.sender === "customer" ? "bg-accent text-accent-fg rounded-br-md" : "bg-neutral-surface text-heading rounded-bl-md"
+                msg.sender === "customer" ? "bg-accent-dim text-white rounded-br-md" : "bg-neutral-surface text-heading rounded-bl-md"
               }`}>
                 {msg.deletedAt ? (
                   <p className="italic opacity-60">This message was deleted</p>
@@ -318,13 +318,13 @@ export default function ChatPage() {
                     ))}
                   </>
                 )}
-                <div className="text-[10px] mt-1 flex items-center gap-1.5" style={{ color: msg.sender === "customer" ? "rgba(6,33,28,0.75)" : "rgba(100,116,139,0.9)" }}>
+                <div className="text-[10px] mt-1 flex items-center gap-1.5" style={{ color: msg.sender === "customer" ? "rgba(255,255,255,0.75)" : "rgba(100,116,139,0.9)" }}>
                   {new Date(msg.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                   {msg.edited && !msg.deletedAt && <span className="opacity-70">· edited</span>}
                   {msg.sender === "customer" && (
                     msg.isRead
-                      ? <span className="flex items-center gap-0.5 font-medium" style={{ color: "rgba(6,33,28,0.75)", fontSize: "10px" }}><CheckCheck className="w-3.5 h-3.5" /> Seen</span>
-                      : <span style={{ color: "rgba(6,33,28,0.45)" }}><CheckCheck className="w-3.5 h-3.5" /></span>
+                      ? <span className="flex items-center gap-0.5 font-medium" style={{ color: "rgba(255,255,255,0.7)", fontSize: "10px" }}><CheckCheck className="w-3.5 h-3.5" /> Seen</span>
+                      : <span style={{ color: "rgba(255,255,255,0.45)" }}><CheckCheck className="w-3.5 h-3.5" /></span>
                   )}
                 </div>
               </div>

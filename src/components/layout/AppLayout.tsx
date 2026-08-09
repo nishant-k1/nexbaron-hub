@@ -96,17 +96,17 @@ export default function AppLayout() {
   return (
     <div className="h-screen flex bg-neutral-bg overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-60 h-full border-r border-border bg-neutral-surface shrink-0 flex flex-col">
+      <aside className="w-60 h-full border-r border-border bg-neutral-surface/80 backdrop-blur shrink-0 flex flex-col">
         <Link to={`/${division}`} className="p-5 border-b border-border flex items-center gap-3 hover:bg-neutral-surface/50">
           <BrandMark size={40} />
           <div>
-            <h1 className="text-[15px] font-bold text-heading leading-tight">Nexbaron Hub</h1>
+            <h1 className="text-[15px] font-bold text-heading leading-tight tracking-tight">Nexbaron Hub</h1>
             <p className="text-[11px] capitalize text-muted">{division} division</p>
           </div>
         </Link>
 
         <nav className="px-3 py-4 space-y-1 flex-1">
-          <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-muted">Menu</p>
+          <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">Menu</p>
           {NAV.map(({ to, label, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end}
               className={({ isActive }) => cn(
@@ -159,9 +159,9 @@ export default function AppLayout() {
 
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 border-b border-border bg-neutral-surface/60 backdrop-blur flex items-center justify-between px-6 shrink-0">
+        <header className="h-16 border-b border-border bg-neutral-surface/70 backdrop-blur flex items-center justify-between px-6 shrink-0 shadow-[0_1px_0_0_var(--border),0_1px_8px_-2px_rgba(0,0,0,0.25)]">
           <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-heading">{pageTitle}</h2>
+            <h2 className="text-lg font-semibold text-heading tracking-tight">{pageTitle}</h2>
             {segments.length > 1 && (
               <span className="text-muted text-sm">/ {segments[1]}</span>
             )}

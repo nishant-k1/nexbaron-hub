@@ -79,10 +79,10 @@ export default function Progress() {
               <div className="flex-1">
                 <p className={`text-sm ${step.done ? "text-heading font-semibold" : "text-muted"}`}>{step.label}</p>
                 {i === doneCount && doneCount < steps.length && (
-                  <p className="text-[10px] text-accent mt-0.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" /> In progress</p>
+                  <p className="text-[11px] text-accent mt-0.5 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" /> In progress</p>
                 )}
               </div>
-              {step.done && <span className="text-[10px] text-emerald-400 font-medium">Done</span>}
+              {step.done && <span className="text-[11px] text-emerald-400 font-medium">Done</span>}
             </div>
           ))}
         </div>
@@ -90,15 +90,15 @@ export default function Progress() {
 
       <div className="rounded-2xl bg-neutral-surface border border-border p-5">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div><p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Status</p>
+          <div><p className="text-[11px] text-muted uppercase tracking-wider mb-0.5">Status</p>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
               order.status === "paid" ? "bg-teal-500/10 text-teal-500" : order.status === "in_progress" ? "bg-blue-500/10 text-blue-500" :
               order.status === "delivered" ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
             }`}>{order.status === "in_progress" ? "In Progress" : order.status || "pending"}</span>
           </div>
-          <div><p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Amount</p><p className="text-sm font-bold text-heading">{MONEY.format(order.amount || 0)}</p></div>
-          <div><p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Services</p><p className="text-sm font-bold text-heading">{doneCount}/{steps.length} done</p></div>
-          <div><p className="text-[10px] text-muted uppercase tracking-wider mb-0.5">Since</p><p className="text-sm font-medium text-heading">{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p></div>
+          <div><p className="text-[11px] text-muted uppercase tracking-wider mb-0.5">Amount</p><p className="text-sm font-bold text-heading">{MONEY.format(order.amount || 0)}</p></div>
+          <div><p className="text-[11px] text-muted uppercase tracking-wider mb-0.5">Services</p><p className="text-sm font-bold text-heading">{doneCount}/{steps.length} done</p></div>
+          <div><p className="text-[11px] text-muted uppercase tracking-wider mb-0.5">Since</p><p className="text-sm font-medium text-heading">{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</p></div>
         </div>
       </div>
     </div>

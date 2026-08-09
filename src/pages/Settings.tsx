@@ -8,10 +8,7 @@ export default function Settings() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-heading">Settings</h1>
-        <p className="text-sm text-muted mt-0.5">Your account details</p>
-      </div>
+      <p className="text-sm text-muted">Your account details</p>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile card */}

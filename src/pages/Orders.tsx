@@ -123,12 +123,9 @@ export default function Orders() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-heading">Orders</h1>
-          <p className="text-sm text-muted mt-0.5">
-            {orders.length} order{orders.length !== 1 ? "s" : ""} · {MONEY.format(totalSpent)} total
-          </p>
-        </div>
+        <p className="text-sm text-muted">
+          {orders.length} order{orders.length !== 1 ? "s" : ""} · {MONEY.format(totalSpent)} total
+        </p>
       </div>
 
       {/* Latest order — featured card */}

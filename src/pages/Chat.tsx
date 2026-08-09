@@ -246,10 +246,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="mb-4">
-        <h2 className="text-2xl font-bold text-heading">Chat</h2>
-        <p className="text-sm text-muted">Continue conversations you started on the website.</p>
-      </div>
+      <p className="text-sm text-muted mb-4">Continue conversations you started on the website.</p>
 
       <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-neutral-surface/50 p-4 space-y-4">
         {loading ? (

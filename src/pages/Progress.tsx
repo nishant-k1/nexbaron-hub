@@ -43,10 +43,7 @@ export default function Progress() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-heading">Progress</h1>
-          <p className="text-sm text-muted mt-0.5">{order.plan || order.service || "Your Plan"}</p>
-        </div>
+        <p className="text-sm text-muted">{order.plan || order.service || "Your Plan"}</p>
         <button onClick={load} className="cursor-pointer p-2 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors"><RefreshCw className="w-4 h-4" /></button>
       </div>
 

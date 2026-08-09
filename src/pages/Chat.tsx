@@ -1,7 +1,10 @@
 import { Send, MessageCircle, Paperclip, X, Image, FileText, Film, Download, CheckCheck, ExternalLink } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { type Socket } from "socket.io-client";
 
 import { apiRequest, chatApiRequest, getChatUrl } from "@/lib/api";
+import { connectChatSocket } from "@/lib/chat-socket";
+import { getToken } from "@/lib/api";
 import { useAuth } from "@/auth/auth-context";
 import { useDivision } from "@/theme/theme-provider";
 
@@ -85,6 +88,25 @@ export default function ChatPage() {
       .finally(() => { if (initial) setLoading(false) });
   }, [division]);
   useEffect(() => { loadMessages(true) }, [loadMessages]);
+
+  // Realtime: live-update when new agent messages arrive or read status changes.
+  const socketRef = useRef<Socket | null>(null);
+  useEffect(() => {
+    if (!division) return;
+    socketRef.current?.disconnect();
+    const socket = connectChatSocket({
+      division,
+      token: getToken(division),
+      sessionId: undefined,
+      onEvent: (event) => {
+        if (event === "message:new" || event === "message:read") {
+          loadMessages(false);
+        }
+      },
+    });
+    socketRef.current = socket;
+    return () => { socketRef.current?.disconnect(); socketRef.current = null; };
+  }, [division, loadMessages]);
 
   // Poll for new chats / read receipts every 10s without flashing the spinner
   useEffect(() => {

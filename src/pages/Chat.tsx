@@ -108,13 +108,6 @@ export default function ChatPage() {
     return () => { socketRef.current?.disconnect(); socketRef.current = null; };
   }, [division, loadMessages]);
 
-  // Poll for new chats / read receipts every 10s without flashing the spinner
-  useEffect(() => {
-    if (!division) return
-    const interval = setInterval(() => loadMessages(false), 10000)
-    return () => clearInterval(interval)
-  }, [division, loadMessages]);
-
   // Mark agent replies as read whenever the chat page is open (authenticated
   // customer → backend matches by customerId).
   useEffect(() => {

@@ -1,11 +1,12 @@
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
 import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, X, AlertTriangle, Loader2, Bell, Sun, Moon } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
+import { io, type Socket } from "socket.io-client"
 import { useAuth } from "@/auth/auth-context"
 import { useDivision, useTheme } from "@/theme/theme-provider"
 import { BrandMark } from "@/components/brand/BrandMark"
 import { cn } from "@/lib/cn"
-import { apiRequest, chatApiRequest } from "@/lib/api"
+import { apiRequest, chatApiRequest, getChatUrl, getToken } from "@/lib/api"
 
 const PAGE_TITLES: Record<string, string> = {
   "": "Dashboard", orders: "My Orders", progress: "Progress", chat: "Chat",
@@ -47,8 +48,15 @@ export default function AppLayout() {
         }).catch(() => {})
     }
     poll()
-    const interval = setInterval(poll, 10000)
-    return () => clearInterval(interval)
+    let socket: Socket | null = null
+    const token = getToken(division)
+    socket = io(getChatUrl(), {
+      transports: ["websocket"],
+      auth: { division, ...(token ? { token } : {}) },
+    })
+    socket.on("message:new", poll)
+    socket.on("message:read", poll)
+    return () => { socket?.disconnect() }
   }, [division])
 
   useEffect(() => {

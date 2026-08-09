@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
-import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, X, AlertTriangle, Loader2, Bell, Sun, Moon } from "lucide-react"
+import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, X, AlertTriangle, Loader2, Bell, Sun, Moon, Package, CreditCard } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { io, type Socket } from "socket.io-client"
 import { useAuth } from "@/auth/auth-context"
@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn"
 import { apiRequest, chatApiRequest, getChatUrl, getToken } from "@/lib/api"
 
 const PAGE_TITLES: Record<string, string> = {
-  "": "Dashboard", orders: "My Orders", progress: "Progress", chat: "Chat",
+  "": "Projects", orders: "My Orders", progress: "Progress", chat: "Chat", plan: "My Plan", projects: "Project Detail",
 }
 
 export default function AppLayout() {
@@ -19,14 +19,15 @@ export default function AppLayout() {
   const location = useLocation()
 
   const NAV = [
-    { to: `/${division}`, label: "Dashboard", icon: LayoutDashboard, end: true },
+    { to: `/${division}`, label: "Projects", icon: Package, end: true },
+    { to: `/${division}/plan`, label: "My Plan", icon: CreditCard },
     { to: `/${division}/orders`, label: "My Orders", icon: FileText },
     { to: `/${division}/progress`, label: "Progress", icon: Receipt },
     { to: `/${division}/chat`, label: "Chat", icon: MessageCircle },
   ]
 
   const segments = location.pathname.replace(`/${division}`, "").split("/").filter(Boolean)
-  const pageTitle = PAGE_TITLES[segments[0] || ""] || segments[0] || "Dashboard"
+  const pageTitle = PAGE_TITLES[segments[0] || ""] || segments[0] || "Projects"
   const initials = (user?.name || "?").split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase()
 
   const [settingsOpen, setSettingsOpen] = useState(false)

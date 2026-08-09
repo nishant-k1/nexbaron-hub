@@ -77,3 +77,78 @@ export interface AuthUser {
   id: string; name: string; email: string | null; phone: string | null
   division: Division; photo?: string | null; planConfig?: PlanConfig | null
 }
+
+// ─── Hub Types ───
+
+export type PipelineStage = "inquiry" | "proposal" | "commit" | "build" | "delivery"
+
+export interface ProjectSummary {
+  projectId: string
+  stage: PipelineStage
+  leadId: string
+  customerName: string
+  customerEmail?: string
+  customerPhone?: string
+  plan?: string
+  source: string
+  leadStatus: string
+  latestQuote: { id: string; status: string; price?: number } | null
+  latestOrder: { id: string; status: string; amount: number; amountPaid: number; milestones: { done: number; total: number } } | null
+  unreadChats: number
+  lastActivity: string | null
+  createdAt: string
+}
+
+export interface ProjectDetail {
+  lead: {
+    _id: string
+    name: string
+    email?: string
+    phone?: string
+    plan?: string
+    status: string
+    message?: string
+  }
+  quotes: {
+    _id: string
+    quoteNumber: string
+    status: string
+    selection: Record<string, unknown>
+    response?: { price?: number; message?: string; sentAt?: string } | null
+  }[]
+  orders: {
+    _id: string
+    status: string
+    amount: number
+    amountPaid: number
+    launchDate?: string
+    milestones?: { key: string; label: string; dayLabel: string; status: string; date?: string }[]
+    invoiceNumber?: string
+  }[]
+  chat: { _id: string; sender: string; message: string; createdAt: string }[]
+  stage: PipelineStage
+}
+
+export const PIPELINE_LABELS: Record<PipelineStage, string> = {
+  inquiry: "Inquiry",
+  proposal: "Proposal",
+  commit: "Commit",
+  build: "Build",
+  delivery: "Delivery",
+}
+
+export const PIPELINE_STAGES: PipelineStage[] = ["inquiry", "proposal", "commit", "build", "delivery"]
+
+// ─── Hub API Functions ───
+
+export async function fetchMyProjects(division: Division): Promise<{ projects: ProjectSummary[]; pipeline: Record<string, number> }> {
+  return apiRequest(`/${division}/projects`, {}, division)
+}
+
+export async function fetchMyProject(division: Division, projectId: string): Promise<{ project: ProjectDetail }> {
+  return apiRequest(`/${division}/projects/${projectId}`, {}, division)
+}
+
+export async function fetchMyOrders(division: Division): Promise<{ orders: any[] }> {
+  return apiRequest(`/${division}/payments/orders/mine`, {}, division)
+}

@@ -70,6 +70,11 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
+
+  /* Consistent radius scale — matches nexbaron-web/nexbaron-crm */
+  --radius-lg: 8px;
+  --radius-xl: 16px;
+  --radius-2xl: 16px;
 }
 
 html,

@@ -12,6 +12,7 @@ interface ChatAttachment { url: string; type: "image" | "video" | "document"; na
 interface ChatMessage {
   _id: string; message: string; sender: "customer" | "agent";
   attachments?: ChatAttachment[]; createdAt: string; isRead: boolean;
+  edited?: boolean; deletedAt?: string | null;
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -65,6 +66,9 @@ export default function ChatPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [agentTyping, setAgentTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -79,14 +83,30 @@ export default function ChatPage() {
   const loadMessages = useCallback((initial = false) => {
     if (!division) return;
     if (initial) { setLoading(true); setLoadError(null); }
-    chatApiRequest<{ success: boolean; messages: ChatMessage[] }>(`/${division}/chat`, {}, division!)
+    chatApiRequest<{ success: boolean; messages: ChatMessage[]; hasMore?: boolean }>(`/${division}/chat`, {}, division!)
       .then((data) => setMessages((prev) => {
         const next = data.messages || [];
+        setHasMore(!!data.hasMore)
         return sameList(prev, next) ? prev : next;
       }))
       .catch(() => { if (initial) setLoadError("Could not load conversations") })
       .finally(() => { if (initial) setLoading(false) });
   }, [division]);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!division || !hasMore || loadingOlder) return
+    setLoadingOlder(true)
+    try {
+      const oldest = messages[0]
+      const data = await chatApiRequest<{ success: boolean; messages: ChatMessage[]; hasMore?: boolean }>(
+        `/${division}/chat?before=${oldest?._id ?? ""}`, {}, division!
+      )
+      setMessages((prev) => [...(data.messages || []), ...prev])
+      setHasMore(!!data.hasMore)
+    } catch { /* keep */ }
+    finally { setLoadingOlder(false) }
+  }, [division, hasMore, loadingOlder, messages])
+
   useEffect(() => { loadMessages(true) }, [loadMessages]);
 
   // Realtime: live-update when new agent messages arrive or read status changes.
@@ -98,12 +118,17 @@ export default function ChatPage() {
       division,
       token: getToken(division),
       sessionId: undefined,
-      onEvent: (event) => {
-        if (event === "message:new" || event === "message:read") {
+      onEvent: (event, cb) => {
+        if (event === "message:new" || event === "message:read" || event === "message:updated" || event === "message:deleted") {
           loadMessages(false);
         }
       },
     });
+    // Typing indicator handled via an explicit listener (the helper also
+    // forwards it through onEvent, which we ignore for typing).
+    socket?.on("typing", (payload: { sender?: string; isTyping?: boolean }) => {
+      setAgentTyping(payload.sender === "agent" && !!payload.isTyping)
+    })
     socketRef.current = socket;
     return () => { socketRef.current?.disconnect(); socketRef.current = null; };
   }, [division, loadMessages]);
@@ -243,41 +268,57 @@ export default function ChatPage() {
             </div>
           </div>
         ) : (
-          messages.map((msg) => (
+          <>
+            {hasMore && (
+              <div className="flex justify-center">
+                <button onClick={loadOlderMessages} disabled={loadingOlder}
+                  className="cursor-pointer text-xs px-3 py-1.5 rounded-lg bg-neutral-surface border border-border text-muted hover:text-heading disabled:opacity-50">
+                  {loadingOlder ? "Loading…" : "Load older messages"}
+                </button>
+              </div>
+            )}
+            {messages.map((msg) => (
             <div key={msg._id} className={`flex ${msg.sender === "customer" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm ${
                 msg.sender === "customer" ? "bg-accent text-white rounded-br-md" : "bg-neutral-bg border border-border text-heading rounded-bl-md"
               }`}>
-                {msg.message && <p>{msg.message}</p>}
-                {msg.attachments?.map((a, i) => (
-                  <div key={i} className="mt-2">
-                    {renderAsImage(a) ? (
-                      <div className="relative group">
-                        <img src={a.url} alt={a.name} className="rounded-lg max-w-full max-h-48 object-cover" />
-                        <a href={downloadUrl(a, division)} download={a.name} target="_blank" rel="noopener noreferrer"
-                          className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-black/50 text-white hover:bg-black/70 transition-colors opacity-0 group-hover:opacity-100">
-                          <Download className="w-3.5 h-3.5" />
-                        </a>
+                {msg.deletedAt ? (
+                  <p className="italic opacity-60">This message was deleted</p>
+                ) : (
+                  <>
+                    {msg.message && <p className="whitespace-pre-wrap break-words">{msg.message}</p>}
+                    {msg.attachments?.map((a, i) => (
+                      <div key={i} className="mt-2">
+                        {renderAsImage(a) ? (
+                          <div className="relative group">
+                            <img src={a.url} alt={a.name} className="rounded-lg max-w-full max-h-48 object-cover" />
+                            <a href={downloadUrl(a, division)} download={a.name} target="_blank" rel="noopener noreferrer"
+                              className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-black/50 text-white hover:bg-black/70 transition-colors opacity-0 group-hover:opacity-100">
+                              <Download className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+                        ) : (
+                          <div className={`flex items-center gap-2 p-2 rounded-lg text-xs ${msg.sender === "customer" ? "bg-white/10" : "bg-neutral-surface"} transition-colors`}>
+                            <span className="shrink-0">{getAttachIcon(a.type)}</span>
+                            <span className="truncate flex-1 min-w-0">{a.name}</span>
+                            <a href={a.url} target="_blank" rel="noopener noreferrer" title="Open" aria-label={`Open ${a.name}`}
+                              className="p-1 rounded hover:bg-white/10 transition-colors">
+                              <span className="sr-only">Open</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                            <a href={downloadUrl(a, division)} download={a.name} title="Download" aria-label={`Download ${a.name}`}
+                              className="p-1 rounded hover:bg-white/10 transition-colors">
+                              <Download className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className={`flex items-center gap-2 p-2 rounded-lg text-xs ${msg.sender === "customer" ? "bg-white/10" : "bg-neutral-surface"} transition-colors`}>
-                        <span className="shrink-0">{getAttachIcon(a.type)}</span>
-                        <span className="truncate flex-1 min-w-0">{a.name}</span>
-                        <a href={a.url} target="_blank" rel="noopener noreferrer" title="Open" aria-label={`Open ${a.name}`}
-                          className="p-1 rounded hover:bg-white/10 transition-colors">
-                          <span className="sr-only">Open</span>
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
-                        <a href={downloadUrl(a, division)} download={a.name} title="Download" aria-label={`Download ${a.name}`}
-                          className="p-1 rounded hover:bg-white/10 transition-colors">
-                          <Download className="w-3.5 h-3.5" />
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                    ))}
+                  </>
+                )}
                 <div className="text-[10px] mt-1 flex items-center gap-1.5" style={{ color: msg.sender === "customer" ? "rgba(255,255,255,0.85)" : "rgba(100,116,139,0.9)" }}>
                   {new Date(msg.createdAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  {msg.edited && !msg.deletedAt && <span className="opacity-70">· edited</span>}
                   {msg.sender === "customer" && (
                     msg.isRead
                       ? <span className="flex items-center gap-0.5 font-medium" style={{ color: "rgba(255,255,255,0.7)", fontSize: "10px" }}><CheckCheck className="w-3.5 h-3.5" /> Seen</span>
@@ -286,7 +327,18 @@ export default function ChatPage() {
                 </div>
               </div>
             </div>
-          ))
+            ))}
+            {agentTyping && (
+              <div className="flex justify-start">
+                <div className="max-w-[75%] px-4 py-3 rounded-2xl text-sm bg-neutral-bg border border-border text-heading rounded-bl-md flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: "300ms" }} />
+                  <span className="text-[11px] text-muted ml-1">typing…</span>
+                </div>
+              </div>
+            )}
+          </>
         )}
         <div ref={messagesEndRef} />
       </div>

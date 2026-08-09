@@ -5,7 +5,10 @@ import type { Division } from "./api"
 export interface ChatSocketEvents {
   "message:new": (payload: { division: Division; message: Record<string, unknown> }) => void
   "message:read": (payload: { division: Division; conversationId: string }) => void
+  "message:updated": (payload: { division: Division; message: Record<string, unknown> }) => void
+  "message:deleted": (payload: { division: Division; messageId: string }) => void
   "presence:update": (payload: { division: Division; customerId?: string | null; sessionId?: string | null; lastSeen: string }) => void
+  typing: (payload: { division: Division; conversationId: string; sender: string; isTyping: boolean }) => void
   error: (payload: { message: string }) => void
 }
 
@@ -34,7 +37,10 @@ export function connectChatSocket(options: {
   ;(Object.keys({
     "message:new": 1,
     "message:read": 1,
+    "message:updated": 1,
+    "message:deleted": 1,
     "presence:update": 1,
+    typing: 1,
     error: 1,
   }) as Array<keyof ChatSocketEvents>).forEach((event) => {
     socket.on(event, ((payload: unknown) => {

@@ -27,7 +27,7 @@ export default function Progress() {
   if (loading) return <div className="flex items-center justify-center h-full"><div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" /></div>
   if (loadError || !order) return (
     <div className="max-w-lg mx-auto py-16 text-center">
-      <div className="w-20 h-20 mx-auto rounded-2xl bg-neutral-surface border border-border flex items-center justify-center mb-6"><Clock className="w-10 h-10 text-muted/40" /></div>
+      <div className="w-20 h-20 mx-auto rounded-2xl bg-neutral-surface flex items-center justify-center mb-6"><Clock className="w-10 h-10 text-muted/40" /></div>
       <h1 className="text-2xl font-bold text-heading mb-2">{loadError ? "Could not load progress" : "No active project"}</h1>
       <p className="text-sm text-muted">{loadError || "Complete your payment to see your project progress here."}</p>
       {loadError && <button onClick={load} className="cursor-pointer mt-4 px-4 py-2 bg-accent text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity">Retry</button>}
@@ -47,7 +47,7 @@ export default function Progress() {
         <button onClick={load} className="cursor-pointer p-2 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors"><RefreshCw className="w-4 h-4" /></button>
       </div>
 
-      <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
+      <div className="rounded-2xl bg-neutral-surface overflow-hidden">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -85,7 +85,7 @@ export default function Progress() {
         </div>
       </div>
 
-      <div className="rounded-2xl bg-neutral-surface border border-border p-5">
+      <div className="rounded-2xl bg-neutral-surface p-5">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div><p className="text-[11px] text-muted uppercase tracking-wider mb-0.5">Status</p>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${

@@ -143,7 +143,7 @@ export default function Dashboard() {
         {/* Left — Services (3 columns on lg) */}
         <div className="lg:col-span-3 space-y-6">
           {/* Included */}
-          <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
+          <div className="rounded-2xl bg-neutral-surface overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/60">
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4 text-muted" />
@@ -182,7 +182,7 @@ export default function Dashboard() {
           </div>
 
           {/* Add-ons */}
-          <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
+          <div className="rounded-2xl bg-neutral-surface overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-border/60">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="w-4 h-4 text-muted" />
@@ -229,7 +229,7 @@ export default function Dashboard() {
         {/* Right — Price + Actions (2 columns on lg) */}
         <div className="lg:col-span-2 space-y-4">
           {/* Price card */}
-          <div className="rounded-2xl bg-neutral-surface border border-border p-5 sticky top-6">
+          <div className="rounded-2xl bg-neutral-surface p-5 sticky top-6">
             <div className="mb-4">
               <div className="flex items-baseline justify-between mb-1">
                 <span className="text-xs text-muted">One-time</span>
@@ -331,7 +331,7 @@ export default function Dashboard() {
           {saveError && <p className="text-xs text-red-400 mt-2 text-center">{saveError}</p>}
           <Link
             to={`/${division}/chat`}
-            className="flex items-center gap-3 p-4 rounded-2xl bg-neutral-surface border border-border hover:border-accent/20 transition-colors group"
+            className="flex items-center gap-3 p-4 rounded-2xl bg-neutral-surface hover:border-accent/20 transition-colors group"
           >
             <div className="p-2 rounded-lg bg-accent/10 text-accent">
               <MessageSquare className="w-4 h-4" />

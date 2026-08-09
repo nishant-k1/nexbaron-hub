@@ -12,7 +12,7 @@ export default function Settings() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile card */}
-        <div className="lg:col-span-1 rounded-2xl bg-neutral-surface border border-border p-6 flex flex-col items-center text-center">
+        <div className="lg:col-span-1 rounded-2xl bg-neutral-surface p-6 flex flex-col items-center text-center">
           <div className="w-16 h-16 rounded-full bg-accent/10 border border-accent/20 text-accent flex items-center justify-center text-xl font-bold mb-4">
             {initials}
           </div>
@@ -21,7 +21,7 @@ export default function Settings() {
         </div>
 
         {/* Details */}
-        <div className="lg:col-span-2 rounded-2xl bg-neutral-surface border border-border overflow-hidden">
+        <div className="lg:col-span-2 rounded-2xl bg-neutral-surface overflow-hidden">
           <div className="px-6 py-4 border-b border-border">
             <h2 className="text-sm font-semibold text-heading">Account Information</h2>
           </div>

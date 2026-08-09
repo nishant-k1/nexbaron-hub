@@ -96,8 +96,8 @@ export default function AppLayout() {
   return (
     <div className="h-screen flex bg-neutral-bg overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-60 h-full border-r border-border bg-neutral-surface/80 backdrop-blur shrink-0 flex flex-col">
-        <Link to={`/${division}`} className="h-16 shrink-0 px-5 border-b border-border flex items-center gap-3 hover:bg-neutral-surface/50">
+      <aside className="w-60 h-full bg-neutral-surface shrink-0 flex flex-col">
+        <Link to={`/${division}`} className="h-16 shrink-0 px-5 flex items-center gap-3 hover:bg-neutral-bg/40">
           <BrandMark size={40} />
           <div>
             <h1 className="text-[15px] font-bold text-heading leading-tight tracking-tight">Nexbaron Hub</h1>
@@ -126,14 +126,14 @@ export default function AppLayout() {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-border space-y-2">
+        <div className="p-3 mt-2 space-y-2">
           <button onClick={toggle}
             className="cursor-pointer flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-muted hover:text-heading hover:bg-neutral-bg transition-colors">
             {mode === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             {mode === "dark" ? "Switch to Light" : "Switch to Dark"}
           </button>
 
-          <div className="pt-2 mt-2 border-t border-border">
+          <div className="pt-2 mt-2">
             <div className="w-full flex items-center gap-3 px-2 py-2">
               <div className="w-9 h-9 rounded-full bg-accent/15 text-accent flex items-center justify-center text-sm font-bold">
                 {initials}
@@ -159,7 +159,7 @@ export default function AppLayout() {
 
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 border-b border-border bg-neutral-surface/70 backdrop-blur flex items-center justify-between px-6 shrink-0 shadow-[0_1px_0_0_var(--border),0_1px_8px_-2px_rgba(0,0,0,0.25)]">
+        <header className="h-16 bg-neutral-surface flex items-center justify-between px-6 shrink-0">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold text-heading tracking-tight">{pageTitle}</h2>
             {segments.length > 1 && (
@@ -178,8 +178,8 @@ export default function AppLayout() {
                 )}
               </button>
               {notifOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 bg-neutral-surface border border-border rounded-xl shadow-2xl z-50 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                <div className="absolute right-0 top-full mt-2 w-72 bg-neutral-surface rounded-xl shadow-2xl z-50 overflow-hidden">
+                  <div className="px-4 py-3 flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-heading">Messages</h3>
                     <button onClick={() => setNotifOpen(false)} className="cursor-pointer text-muted hover:text-heading"><X className="w-4 h-4" /></button>
                   </div>
@@ -206,14 +206,14 @@ export default function AppLayout() {
       {/* Settings Modal */}
       {settingsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setSettingsOpen(false)}>
-          <div className="bg-neutral-surface border border-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="bg-neutral-surface rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4">
               <h2 className="text-lg font-bold text-heading">Account Settings</h2>
               <button onClick={() => setSettingsOpen(false)} className="cursor-pointer text-muted hover:text-heading"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="flex items-center gap-4 pb-4 border-b border-border">
-                <div className="w-14 h-14 rounded-full bg-accent/10 border border-accent/20 text-accent flex items-center justify-center text-xl font-bold">{initials}</div>
+              <div className="flex items-center gap-4 pb-4">
+                <div className="w-14 h-14 rounded-full bg-accent/10 text-accent flex items-center justify-center text-xl font-bold">{initials}</div>
                 <div>
                   <p className="font-semibold text-heading">{user?.name}</p>
                   <p className="text-xs text-muted">Update your account details below</p>
@@ -238,7 +238,7 @@ export default function AppLayout() {
                 className="cursor-pointer w-full py-2.5 bg-accent text-white font-bold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Save Changes
               </button>
-              <div className="pt-4 border-t border-border">
+              <div className="pt-4">
                 {!deleteConfirm ? (
                   <button onClick={() => setDeleteConfirm(true)}
                     className="cursor-pointer w-full py-2.5 border border-red-500/30 text-red-400 rounded-xl font-medium hover:bg-red-500/5 transition-colors flex items-center justify-center gap-2">

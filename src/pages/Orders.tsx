@@ -76,7 +76,7 @@ export default function Orders() {
   if (loadError) {
     return (
       <div className="max-w-lg mx-auto py-16 text-center">
-        <div className="w-20 h-20 mx-auto rounded-2xl bg-neutral-surface border border-border flex items-center justify-center mb-6">
+        <div className="w-20 h-20 mx-auto rounded-2xl bg-neutral-surface flex items-center justify-center mb-6">
           <Receipt className="w-10 h-10 text-muted/40" />
         </div>
         <h1 className="text-2xl font-bold text-heading mb-2">Could not load orders</h1>
@@ -96,7 +96,7 @@ export default function Orders() {
   if (orders.length === 0) {
     return (
       <div className="max-w-lg mx-auto py-16 text-center">
-        <div className="w-20 h-20 mx-auto rounded-2xl bg-neutral-surface border border-border flex items-center justify-center mb-6">
+        <div className="w-20 h-20 mx-auto rounded-2xl bg-neutral-surface flex items-center justify-center mb-6">
           <Receipt className="w-10 h-10 text-muted/40" />
         </div>
         <h1 className="text-2xl font-bold text-heading mb-2">No orders yet</h1>
@@ -129,7 +129,7 @@ export default function Orders() {
       </div>
 
       {/* Latest order — featured card */}
-      <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
+      <div className="rounded-2xl bg-neutral-surface overflow-hidden">
         <div className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -213,7 +213,7 @@ export default function Orders() {
       {orders.length > 1 && (
         <div>
           <h2 className="text-sm font-semibold text-heading mb-3 px-1">Order History</h2>
-          <div className="rounded-2xl bg-neutral-surface border border-border divide-y divide-border/60 overflow-hidden">
+          <div className="rounded-2xl bg-neutral-surface divide-y divide-border/60 overflow-hidden">
             {orders.slice(1).map((o) => {
               const cfg = STATUS_CONFIG[o.status || "pending"] || STATUS_CONFIG.pending
               const Icon = cfg.icon

@@ -248,7 +248,7 @@ export default function ChatPage() {
     <div className="flex flex-col h-full">
       <p className="text-sm text-muted mb-4">Continue conversations you started on the website.</p>
 
-      <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-neutral-surface/50 p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto rounded-xl bg-neutral-surface/50 p-4 space-y-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
@@ -348,7 +348,7 @@ export default function ChatPage() {
       {attachments.length > 0 && (
         <div className="flex gap-2 mt-2 flex-wrap">
           {attachments.map((a, i) => (
-            <div key={i} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-surface border border-border text-xs">
+            <div key={i} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-bg text-xs">
               {renderAsImage(a) ? <img src={a.url} alt="" className="w-6 h-6 rounded object-cover" /> : getAttachIcon(a.type)}
               <span className="text-heading truncate max-w-[120px]">{a.name}</span>
               <button onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))} className="text-muted hover:text-red-400"><X className="w-3 h-3" /></button>

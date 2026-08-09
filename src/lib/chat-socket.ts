@@ -26,7 +26,7 @@ export function connectChatSocket(options: {
   if (!division) return null
 
   const socket = io(getChatUrl(), {
-    transports: ["websocket"],
+    transports: ["websocket", "polling"],
     auth: {
       division,
       ...(token ? { token } : {}),

@@ -74,6 +74,7 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
+  --color-accent-dim: var(--accent-dim);
 
   /* Consistent radius scale — matches nexbaron-web/nexbaron-crm */
   --radius-lg: 8px;

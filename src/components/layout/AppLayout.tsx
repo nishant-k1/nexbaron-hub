@@ -97,7 +97,7 @@ export default function AppLayout() {
     <div className="h-screen flex bg-neutral-bg overflow-hidden">
       {/* Sidebar */}
       <aside className="w-60 h-full border-r border-border bg-neutral-surface/80 backdrop-blur shrink-0 flex flex-col">
-        <Link to={`/${division}`} className="p-5 border-b border-border flex items-center gap-3 hover:bg-neutral-surface/50">
+        <Link to={`/${division}`} className="h-16 shrink-0 px-5 border-b border-border flex items-center gap-3 hover:bg-neutral-surface/50">
           <BrandMark size={40} />
           <div>
             <h1 className="text-[15px] font-bold text-heading leading-tight tracking-tight">Nexbaron Hub</h1>

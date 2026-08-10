@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/auth/auth-context"
 import { apiRequest, type AuthUser } from "@/lib/api"
 import { getGoogleClientId, loadGoogleGis, triggerGoogleSignIn } from "@/lib/google"
-import { Mail, Phone } from "lucide-react"
 
 const COPY: Record<"digital" | "print", { title: string; tagline: string }> = {
   digital: {
@@ -24,7 +23,6 @@ export default function Login() {
   const { division } = useParams<{ division: string }>()
   const { signIn, user, initialized } = useAuth()
   const navigate = useNavigate()
-  const [channel, setChannel] = useState<"email" | "phone">("email")
   const [target, setTarget] = useState("")
   const [code, setCode] = useState("")
   const [otpSent, setOtpSent] = useState(false)
@@ -66,12 +64,11 @@ export default function Login() {
   }
 
   const requestOtp = async () => {
-    if (!target.trim()) { setError(channel === "email" ? "Please enter your email." : "Please enter your phone number."); return }
+    if (!target.trim()) { setError("Please enter your email."); return }
     setLoading(true); setError(null)
     try {
-      const apiChannel = channel === "phone" ? "whatsapp" : "email"
       const data = await apiRequest<{ devCode?: string }>(`/${division}/auth/request-otp`, {
-        method: "POST", body: JSON.stringify({ channel: apiChannel, target, name: "", purpose: "login" }),
+        method: "POST", body: JSON.stringify({ channel: "email", target, name: "", purpose: "login" }),
       }, division)
       setOtpSent(true); setDevCode(data.devCode ?? null)
     } catch (e) { setError(e instanceof Error ? e.message : "Could not send code.") }
@@ -82,9 +79,8 @@ export default function Login() {
     if (!code.trim()) { setError("Please enter the verification code."); return }
     setLoading(true); setError(null)
     try {
-      const apiChannel = channel === "phone" ? "whatsapp" : "email"
       const data = await apiRequest<{ token: string; user: AuthUser }>(`/${division}/auth/verify`, {
-        method: "POST", body: JSON.stringify({ channel: apiChannel, target, code, name: "", purpose: "login" }),
+        method: "POST", body: JSON.stringify({ channel: "email", target, code, name: "", purpose: "login" }),
       }, division)
       signIn(data.token, data.user)
       navigate(`/${division}`, { replace: true })
@@ -133,31 +129,13 @@ export default function Login() {
             </div>
 
             <form onSubmit={e => { e.preventDefault(); if (otpSent) verifyCode(); else requestOtp() }} className="space-y-4">
-              {/* Channel toggle */}
-              <div className="flex gap-1 bg-neutral-surface rounded-xl p-1">
-                <button
-                  type="button"
-                  onClick={() => { setChannel("email"); setTarget(""); setOtpSent(false) }}
-                  className={`cursor-pointer flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${channel === "email" ? "bg-accent text-white" : "text-muted hover:text-heading"}`}
-                >
-                  <Mail className="h-4 w-4" /> Email
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setChannel("phone"); setTarget(""); setOtpSent(false) }}
-                  className={`cursor-pointer flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${channel === "phone" ? "bg-accent text-white" : "text-muted hover:text-heading"}`}
-                >
-                  <Phone className="h-4 w-4" /> Phone
-                </button>
-              </div>
-
               <div className="space-y-1.5">
-                <Label htmlFor="target">{channel === "email" ? "Email address" : "Phone number"}</Label>
+                <Label htmlFor="target">Email address</Label>
                 <Input
                   id="target"
-                  type={channel === "email" ? "email" : "tel"}
-                  autoComplete={channel === "email" ? "email" : "tel"}
-                  placeholder={channel === "email" ? "you@business.com" : "+91 98765 43210"}
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@business.com"
                   value={target}
                   onChange={e => { setTarget(e.target.value); if (otpSent) { setOtpSent(false); setDevCode(null) } }}
                   disabled={otpSent}

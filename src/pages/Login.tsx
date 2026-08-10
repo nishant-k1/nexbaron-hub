@@ -69,8 +69,9 @@ export default function Login() {
     if (!target.trim()) { setError(channel === "email" ? "Please enter your email." : "Please enter your phone number."); return }
     setLoading(true); setError(null)
     try {
+      const apiChannel = channel === "phone" ? "whatsapp" : "email"
       const data = await apiRequest<{ devCode?: string }>(`/${division}/auth/request-otp`, {
-        method: "POST", body: JSON.stringify({ channel, target, name: "", purpose: "login" }),
+        method: "POST", body: JSON.stringify({ channel: apiChannel, target, name: "", purpose: "login" }),
       }, division)
       setOtpSent(true); setDevCode(data.devCode ?? null)
     } catch (e) { setError(e instanceof Error ? e.message : "Could not send code.") }
@@ -81,8 +82,9 @@ export default function Login() {
     if (!code.trim()) { setError("Please enter the verification code."); return }
     setLoading(true); setError(null)
     try {
+      const apiChannel = channel === "phone" ? "whatsapp" : "email"
       const data = await apiRequest<{ token: string; user: AuthUser }>(`/${division}/auth/verify`, {
-        method: "POST", body: JSON.stringify({ channel, target, code, name: "", purpose: "login" }),
+        method: "POST", body: JSON.stringify({ channel: apiChannel, target, code, name: "", purpose: "login" }),
       }, division)
       signIn(data.token, data.user)
       navigate(`/${division}`, { replace: true })

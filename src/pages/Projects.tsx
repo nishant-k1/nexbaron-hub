@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useParams } from "react-router-dom"
-import { ArrowRight, Package, Clock, CheckCircle2, Circle, MessageSquare, AlertCircle } from "lucide-react"
+import { ArrowRight, Package, Clock, CheckCircle2, Circle, MessageSquare, AlertCircle, CreditCard, FileText } from "lucide-react"
 import { useAuth } from "@/auth/auth-context"
 import { fetchMyProjects, type ProjectSummary, type PipelineStage, PIPELINE_LABELS, PIPELINE_STAGES } from "@/lib/api"
 
@@ -58,12 +58,23 @@ export default function ProjectsPage() {
             <Package className="h-6 w-6" />
           </div>
           <h3 className="font-semibold text-heading mb-1">No projects yet</h3>
-          <p className="text-sm text-muted max-w-[320px] mb-4">
+          <p className="text-sm text-muted max-w-[320px] mb-6">
             When you submit a quote request, make a purchase, or chat with us, your projects will appear here.
           </p>
-          <Link to={`/${division}/chat`} className="px-4 py-2 bg-accent text-white rounded-xl text-sm font-bold hover:opacity-90 transition-opacity cursor-pointer inline-flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" /> Start a conversation
-          </Link>
+          <div className="flex flex-col gap-2 w-full max-w-[280px]">
+            {division === "digital" ? (
+              <Link to={`/${division}/plan`} className="px-4 py-2.5 bg-accent text-white rounded-xl text-sm font-bold hover:opacity-90 transition-opacity cursor-pointer inline-flex items-center justify-center gap-2">
+                <CreditCard className="h-4 w-4" /> Browse Plans
+              </Link>
+            ) : (
+              <a href="https://www.nexbaron.com/print/quote" className="px-4 py-2.5 bg-accent text-white rounded-xl text-sm font-bold hover:opacity-90 transition-opacity cursor-pointer inline-flex items-center justify-center gap-2">
+                <FileText className="h-4 w-4" /> Request a Quote
+              </a>
+            )}
+            <Link to={`/${division}/chat`} className="px-4 py-2 border border-border rounded-xl text-sm text-muted hover:text-heading transition-colors cursor-pointer inline-flex items-center justify-center gap-2">
+              <MessageSquare className="h-4 w-4" /> Start a conversation
+            </Link>
+          </div>
         </div>
       ) : (
         <>

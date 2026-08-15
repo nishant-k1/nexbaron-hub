@@ -8,7 +8,6 @@ import {
   Rocket,
   TrendingUp,
   Building2,
-  Bot,
   ArrowRight,
   MessageSquare,
   Sparkles,
@@ -42,7 +41,7 @@ interface CatalogPlan {
   addOns: CatalogService[]
 }
 
-const ICONS: Record<string, React.ElementType> = { launch: Rocket, growth: TrendingUp, scale: Building2, "ai-growth": Bot }
+const ICONS: Record<string, React.ElementType> = { launch: Rocket, growth: TrendingUp, scale: Building2 }
 
 const MONEY = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 })
 

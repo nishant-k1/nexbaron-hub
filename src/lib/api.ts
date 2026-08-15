@@ -72,7 +72,8 @@ export async function chatApiRequest<T>(path: string, options: RequestInit = {},
   return data as T
 }
 
-export interface PlanConfig { planId: string; removedServices: string[]; addOns: Record<string, number> }
+export type BillingCycleChoice = "monthly" | "annual"
+export interface PlanConfig { planId: string; removedServices: string[]; addOns: Record<string, number>; billingCycle?: BillingCycleChoice }
 export interface AuthUser {
   id: string; name: string; email: string | null; phone: string | null
   division: Division; photo?: string | null; planConfig?: PlanConfig | null

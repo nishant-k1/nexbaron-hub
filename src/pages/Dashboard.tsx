@@ -18,13 +18,14 @@ import {
 
 import { useAuth } from "@/auth/auth-context"
 import { useDivision } from "@/theme/theme-provider"
-import { apiRequest } from "@/lib/api"
+import { apiRequest, type BillingCycleChoice } from "@/lib/api"
 
 interface CatalogService {
   id: string
   label: string
   price: number
   type: "oneTime" | "monthly"
+  annual?: number
   unitLabel?: string
 }
 
@@ -44,6 +45,31 @@ const ICONS: Record<string, React.ElementType> = { launch: Rocket, growth: Trend
 
 const MONEY = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 })
 
+interface RawService {
+  id: string
+  label: string
+  unitLabel?: string
+  aggregate?: { selling?: { setup?: number; monthly?: number; annual?: number } }
+}
+
+// The API catalog exposes tiers via `aggregate.selling` (setup/monthly/annual), not a flat
+// `price`/`type`. Normalise each service once so the rest of this page can read price + cycle safely.
+function toService(s: RawService): CatalogService {
+  const selling = s.aggregate?.selling ?? {}
+  const monthly = selling.monthly ?? 0
+  const setup = selling.setup ?? 0
+  return {
+    id: s.id,
+    label: s.label,
+    unitLabel: s.unitLabel,
+    price: monthly > 0 ? monthly : setup,
+    type: monthly > 0 ? "monthly" : "oneTime",
+    annual: selling.annual,
+  }
+}
+
+const annualOf = (s: CatalogService): number => (s.type === "monthly" ? (s.annual ?? s.price * 12) : 0)
+
 export default function Dashboard() {
   const { user } = useAuth()
   const division = useDivision()
@@ -58,21 +84,40 @@ export default function Dashboard() {
   const [saving, setSavingPlan] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
+  const [billingCycle, setBillingCycle] = useState<BillingCycleChoice>(() => {
+    if (typeof window === "undefined") return "monthly"
+    const fromUrl = new URLSearchParams(window.location.search).get("billing")
+    if (fromUrl === "annual" || fromUrl === "monthly") return fromUrl
+    const fromConfig = user?.planConfig?.billingCycle
+    if (fromConfig === "annual" || fromConfig === "monthly") return fromConfig
+    return localStorage.getItem("nexbaron-billing") === "annual" ? "annual" : "monthly"
+  })
+
+  const switchBilling = (cycle: BillingCycleChoice) => {
+    setBillingCycle(cycle)
+    if (typeof window !== "undefined") localStorage.setItem("nexbaron-billing", cycle)
+  }
+
   useEffect(() => {
     if (!division) return
-    apiRequest<{ plans: CatalogPlan[] }>("/" + division + "/catalog", {}, division)
+    apiRequest<{ plans: (Omit<CatalogPlan, "services" | "addOns"> & { services: RawService[]; addOns: RawService[] })[] }>("/" + division + "/catalog", {}, division)
       .then((data) => {
         const config = user?.planConfig
-        const planIdFromConfig = config?.planId || localStorage.getItem("nexbaron-plan-id") || "launch"
+        const fromUrl = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("plan") : null
+        const planIdFromConfig = config?.planId || fromUrl || localStorage.getItem("nexbaron-plan-id") || "launch"
         const found = data.plans.find((p) => p.id === planIdFromConfig) || data.plans[0]
-        setPlanId(planIdFromConfig)
-        setPlan(found)
+        if (found) {
+          setPlanId(planIdFromConfig)
+          setPlan({ ...found, services: found.services.map(toService), addOns: found.addOns.map(toService) })
+          if (typeof window !== "undefined") localStorage.setItem("nexbaron-plan-id", planIdFromConfig)
+        }
+        const services = found?.services ?? []
         if (config?.removedServices) {
-          const e = new Set(found.services.map((s) => s.id))
+          const e = new Set(services.map((s) => s.id))
           config.removedServices.forEach((id: string) => e.delete(id))
           setEnabled(e)
         } else {
-          setEnabled(new Set(found.services.map((s) => s.id)))
+          setEnabled(new Set(services.map((s) => s.id)))
         }
         if (config?.addOns) setAddOns(config.addOns)
         setLoading(false)
@@ -108,11 +153,16 @@ export default function Dashboard() {
 
   const includedOneTime = plan.services.filter((s) => enabled.has(s.id) && s.type === "oneTime").reduce((s, x) => s + x.price, 0)
   const includedMonthly = plan.services.filter((s) => enabled.has(s.id) && s.type === "monthly").reduce((s, x) => s + x.price, 0)
+  const includedAnnual = plan.services.filter((s) => enabled.has(s.id) && s.type === "monthly").reduce((s, x) => s + annualOf(x), 0)
   const addOnOneTime = plan.addOns.filter((a) => (addOns[a.id] || 0) > 0 && a.type === "oneTime").reduce((s, a) => s + a.price * (addOns[a.id] || 0), 0)
   const addOnMonthly = plan.addOns.filter((a) => (addOns[a.id] || 0) > 0 && a.type === "monthly").reduce((s, a) => s + a.price * (addOns[a.id] || 0), 0)
+  const addOnAnnual = plan.addOns.filter((a) => (addOns[a.id] || 0) > 0 && a.type === "monthly").reduce((s, a) => s + annualOf(a) * (addOns[a.id] || 0), 0)
 
   const totalOneTime = includedOneTime + addOnOneTime
   const totalMonthly = includedMonthly + addOnMonthly
+  const totalAnnual = includedAnnual + addOnAnnual
+  const recurringTotal = billingCycle === "annual" ? totalAnnual : totalMonthly
+  const annualSavings = billingCycle === "annual" ? totalMonthly * 12 - totalAnnual : 0
   const removedCount = plan.services.length - enabled.size
   const addOnCount = Object.keys(addOns).length
   const hasChanges = removedCount > 0 || addOnCount > 0
@@ -173,7 +223,11 @@ export default function Dashboard() {
                       {s.label}
                     </span>
                     <span className={`text-xs ${on ? "text-muted" : "text-muted/30 line-through"}`}>
-                      {MONEY.format(s.price)}{s.type === "monthly" ? "/mo" : ""}
+                      {s.type === "monthly"
+                        ? billingCycle === "annual"
+                          ? `${MONEY.format(annualOf(s))}/yr`
+                          : `${MONEY.format(s.price)}/mo`
+                        : MONEY.format(s.price)}
                     </span>
                   </button>
                 )
@@ -197,7 +251,11 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0 mr-4">
                       <p className="text-sm text-heading truncate">{a.label}</p>
                       <p className="text-xs text-muted mt-0.5">
-                        {MONEY.format(a.price)}{a.unitLabel ? ` ${a.unitLabel}` : ""}{a.type === "monthly" ? "/mo" : ""}
+                        {MONEY.format(a.price)}{a.unitLabel ? ` ${a.unitLabel}` : ""}{a.type === "monthly"
+                          ? billingCycle === "annual"
+                            ? "/yr"
+                            : "/mo"
+                          : ""}
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -230,6 +288,28 @@ export default function Dashboard() {
         <div className="lg:col-span-2 space-y-4">
           {/* Price card */}
           <div className="rounded-2xl bg-neutral-surface p-5 sticky top-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-neutral-bg border border-border/60">
+                {(["monthly", "annual"] as const).map((cycle) => (
+                  <button
+                    key={cycle}
+                    type="button"
+                    onClick={() => switchBilling(cycle)}
+                    className={`cursor-pointer px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
+                      billingCycle === cycle ? "bg-accent text-accent-fg" : "text-muted hover:text-heading"
+                    }`}
+                  >
+                    {cycle === "monthly" ? "Monthly" : "Annual"}
+                  </button>
+                ))}
+              </div>
+              {billingCycle === "annual" && (
+                <span className="text-[10px] text-emerald-400 font-semibold">
+                  {MONEY.format(annualSavings)}/yr off
+                </span>
+              )}
+            </div>
+
             <div className="mb-4">
               <div className="flex items-baseline justify-between mb-1">
                 <span className="text-xs text-muted">One-time</span>
@@ -243,10 +323,14 @@ export default function Dashboard() {
             <div className="mb-5 pb-5 border-b border-border/60">
               <div className="flex items-baseline gap-1 mb-1">
                 <span className="text-xs text-muted">+</span>
-                <span className="text-xl font-bold text-heading">{MONEY.format(totalMonthly)}</span>
-                <span className="text-xs text-muted">/month</span>
+                <span className="text-xl font-bold text-heading">{MONEY.format(recurringTotal)}</span>
+                <span className="text-xs text-muted">{billingCycle === "annual" ? "/year" : "/month"}</span>
               </div>
-              <p className="text-[10px] text-muted">Cancel anytime. Site is yours forever.</p>
+              <p className="text-[10px] text-muted">
+                {billingCycle === "annual"
+                  ? "One annual payment — 2 months free. Cancel anytime."
+                  : "Cancel anytime. Site is yours forever."}
+              </p>
             </div>
 
             <button onClick={() => {
@@ -256,6 +340,7 @@ export default function Dashboard() {
               const addOnIds = Object.entries(addOns).filter(([, c]) => (c || 0) > 0).map(([id]) => id)
               const body = JSON.stringify({
                 planId,
+                billingCycle,
                 selections: {
                   planId,
                   plans: {
@@ -315,7 +400,7 @@ export default function Dashboard() {
                   try {
                     await apiRequest("/" + division! + "/auth/save-plan", {
                       method: "PATCH", headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ planId, removedServices: removed, addOns }),
+                      body: JSON.stringify({ planId, removedServices: removed, addOns, billingCycle }),
                     }, division!)
                   } catch (err) {
                     setSaveError(err instanceof Error ? err.message : "Could not save changes")

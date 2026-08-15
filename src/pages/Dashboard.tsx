@@ -8,6 +8,7 @@ import {
   Rocket,
   TrendingUp,
   Building2,
+  Bot,
   ArrowRight,
   MessageSquare,
   Sparkles,
@@ -41,7 +42,7 @@ interface CatalogPlan {
   addOns: CatalogService[]
 }
 
-const ICONS: Record<string, React.ElementType> = { launch: Rocket, growth: TrendingUp, scale: Building2 }
+const ICONS: Record<string, React.ElementType> = { launch: Rocket, growth: TrendingUp, scale: Building2, "ai-growth": Bot }
 
 const MONEY = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 })
 
@@ -326,7 +327,7 @@ export default function Dashboard() {
                 <span className="text-xl font-bold text-heading">{MONEY.format(recurringTotal)}</span>
                 <span className="text-xs text-muted">{billingCycle === "annual" ? "/year" : "/month"}</span>
               </div>
-              <p className="text-[10px] text-muted">
+              <p className={`text-[10px] ${billingCycle === "annual" ? "text-emerald-400 font-medium" : "text-muted"}`}>
                 {billingCycle === "annual"
                   ? "One annual payment — 2 months free. Cancel anytime."
                   : "Cancel anytime. Site is yours forever."}

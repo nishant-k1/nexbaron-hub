@@ -6,18 +6,36 @@ Customer-facing portal where users manage their Nexbaron account (orders, progre
 
 ```bash
 npm run dev          # vite on port 5173
-npm run build       # tsc --noEmit && vite build
-npm run typecheck   # tsc --noEmit  <- use this to verify changes
+npm run build       # tsc -b && vite build
+npm run lint        # oxlint
 ```
 
-No tests, no linter.
+No tests, no `typecheck` script (`tsc -b` inside `build` is the type gate). Note: `tsconfig.app.json` is NOT strict (`strict`/`noUnusedLocals`/`noUnusedParameters` unset) — dead code compiles.
 
 ## Architecture
 
-- **React 18 + TypeScript 5 (strict) + Vite 5 + react-router-dom v6** (BrowserRouter). Tailwind 3. Icons: lucide-react.
-- **Auth**: Bearer JWT from `nexbaron-auth-token-{division}` in localStorage. `AuthProvider` in `src/auth/auth-context.tsx` manages sign-in/sign-out via `lib/api.ts`.
+- **React 19 + TypeScript 7 + Vite 8 + react-router-dom v7** (BrowserRouter). Tailwind 4 (CSS-first via `@theme` in `src/index.css`, no `tailwind.config`). Icons: lucide-react.
+- **Auth**: Bearer JWT from localStorage key `nexbaron-hub-token-{division}` (see `authTokenKey` in `src/lib/api.ts`). `AuthProvider` in `src/auth/auth-context.tsx` manages sign-in/sign-out via `lib/api.ts`; supports `?token=` auto-login from the web pricing-page signup.
 - **API layer**: `apiRequest<T>()` from `src/lib/api.ts` — native fetch, Bearer token, division-scoped.
+- **Realtime chat:** `src/lib/chat-socket.ts` + `VITE_CHAT_URL` → dedicated `nexbaron-chat` service.
 - Division-aware routing: `/digital/*` and `/print/*` both served by same codebase.
+
+### Routes
+
+```
+/:division/login          OTP (email) + Google
+/:division                Projects — tracker overview (index route)
+/:division/projects/:projectId   ProjectDetail — pipeline + orders + quotes + messages
+/:division/orders         Order history + receipt download
+/:division/progress       Order progress timeline/steps
+/:division/plan           "My Plan" — plan builder + Razorpay checkout
+/:division/chat           Chat (attachments, socket realtime)
+/:division/settings       ORPHANED — no nav link; the sidebar opens an in-shell profile modal instead
+```
+
+### Env (`.env.local`)
+
+`VITE_API_URL_DIGITAL`/`VITE_API_URL_PRINT` (fallback `VITE_API_URL`), `VITE_CHAT_URL` (chat service root, default `https://chat.nexbaron.com`), `VITE_GOOGLE_CLIENT_ID_DIGITAL`/`VITE_GOOGLE_CLIENT_ID_PRINT`. Only the API URLs are documented in `.env.example`.
 
 ### Theming
 

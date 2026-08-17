@@ -23,7 +23,11 @@ export default function Login() {
   const { division } = useParams<{ division: string }>()
   const { signIn, user, initialized } = useAuth()
   const navigate = useNavigate()
+  const [mode, setMode] = useState<"login" | "register">("login")
   const [target, setTarget] = useState("")
+  const [name, setName] = useState("")
+  const [phone, setPhone] = useState("")
+  const [company, setCompany] = useState("")
   const [code, setCode] = useState("")
   const [otpSent, setOtpSent] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -44,6 +48,7 @@ export default function Login() {
 
   const copy = COPY[division]
   const googleClientId = getGoogleClientId(division)
+  const isRegister = mode === "register"
 
   const handleGoogleSignIn = async () => {
     if (!googleClientId) { setError("Google sign-in is not configured."); return }
@@ -65,10 +70,12 @@ export default function Login() {
 
   const requestOtp = async () => {
     if (!target.trim()) { setError("Please enter your email."); return }
+    if (isRegister && !name.trim()) { setError("Please enter your name."); return }
     setLoading(true); setError(null)
     try {
+      const purpose = isRegister ? "signup" : "login"
       const data = await apiRequest<{ devCode?: string }>(`/${division}/auth/request-otp`, {
-        method: "POST", body: JSON.stringify({ channel: "email", target, name: "", purpose: "login" }),
+        method: "POST", body: JSON.stringify({ channel: "email", target, name: name.trim(), purpose }),
       }, division)
       setOtpSent(true); setDevCode(data.devCode ?? null)
     } catch (e) { setError(e instanceof Error ? e.message : "Could not send code.") }
@@ -79,13 +86,19 @@ export default function Login() {
     if (!code.trim()) { setError("Please enter the verification code."); return }
     setLoading(true); setError(null)
     try {
+      const purpose = isRegister ? "signup" : "login"
       const data = await apiRequest<{ token: string; user: AuthUser }>(`/${division}/auth/verify`, {
-        method: "POST", body: JSON.stringify({ channel: "email", target, code, name: "", purpose: "login" }),
+        method: "POST", body: JSON.stringify({ channel: "email", target, code, name: name.trim(), purpose }),
       }, division)
       signIn(data.token, data.user)
       navigate(`/${division}`, { replace: true })
     } catch (e) { setError(e instanceof Error ? e.message : "Verification failed.") }
     finally { setLoading(false) }
+  }
+
+  const switchMode = () => {
+    setMode(m => m === "login" ? "register" : "login")
+    setOtpSent(false); setCode(""); setDevCode(null); setError(null)
   }
 
   return (
@@ -124,13 +137,32 @@ export default function Login() {
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-sm">
             <div className="mb-8">
-              <h2 className="text-2xl font-bold text-heading mb-1">Sign in</h2>
-              <p className="text-sm text-muted">Enter your email or phone to receive a one-time code.</p>
+              <h2 className="text-2xl font-bold text-heading mb-1">{isRegister ? "Create account" : "Sign in"}</h2>
+              <p className="text-sm text-muted">
+                {isRegister
+                  ? "Set up your hub account to manage your plan, track progress, and make payments."
+                  : "Enter your email or phone to receive a one-time code."}
+              </p>
             </div>
 
             <form onSubmit={e => { e.preventDefault(); if (otpSent) verifyCode(); else requestOtp() }} className="space-y-4">
+              {isRegister && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="name">Your name *</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Full name"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+
               <div className="space-y-1.5">
-                <Label htmlFor="target">Email address</Label>
+                <Label htmlFor="target">Email address *</Label>
                 <Input
                   id="target"
                   type="email"
@@ -142,9 +174,39 @@ export default function Login() {
                   required
                 />
                 <p className="text-xs text-muted">
-                  Use the same email or phone you gave when choosing a plan, contacting us, or chatting on WhatsApp — we link your account to existing conversations.
+                  {isRegister
+                    ? "Use the same email you gave when choosing a plan, contacting us, or chatting on WhatsApp — we link your account to existing conversations."
+                    : "Use the same email or phone you gave when choosing a plan, contacting us, or chatting on WhatsApp — we link your account to existing conversations."}
                 </p>
               </div>
+
+              {isRegister && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    autoComplete="tel"
+                    placeholder="+91 98765 43210"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                  />
+                </div>
+              )}
+
+              {isRegister && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="company">Company / Business Name</Label>
+                  <Input
+                    id="company"
+                    type="text"
+                    autoComplete="organization"
+                    placeholder="Your business name"
+                    value={company}
+                    onChange={e => setCompany(e.target.value)}
+                  />
+                </div>
+              )}
 
               {otpSent && (
                 <div className="space-y-1.5">
@@ -171,7 +233,7 @@ export default function Login() {
               {error && <p className="text-sm text-red-400">{error}</p>}
 
               <Button type="submit" className="cursor-pointer w-full" size="lg" disabled={loading}>
-                {loading ? "Please wait…" : otpSent ? "Verify & Sign In" : "Send code"}
+                {loading ? "Please wait…" : otpSent ? (isRegister ? "Verify & Create Account" : "Verify & Sign In") : "Send code"}
               </Button>
             </form>
 
@@ -199,6 +261,23 @@ export default function Login() {
                 </button>
               </div>
             )}
+
+            {/* Mode toggle */}
+            <p className="mt-6 text-center text-sm text-muted">
+              {isRegister ? (
+                <>Already have an account?{" "}
+                  <button type="button" onClick={switchMode} className="cursor-pointer text-accent hover:underline font-medium">
+                    Sign in
+                  </button>
+                </>
+              ) : (
+                <>New here?{" "}
+                  <button type="button" onClick={switchMode} className="cursor-pointer text-accent hover:underline font-medium">
+                    Create an account
+                  </button>
+                </>
+              )}
+            </p>
           </div>
         </div>
 

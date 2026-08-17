@@ -8,6 +8,8 @@ import { useAuth } from "@/auth/auth-context"
 import { apiRequest, type AuthUser } from "@/lib/api"
 import { getGoogleClientId, loadGoogleGis, triggerGoogleSignIn } from "@/lib/google"
 
+const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.nexbaron.com"
+
 const COPY: Record<"digital" | "print", { title: string; tagline: string }> = {
   digital: {
     title: "Digital Hub",
@@ -62,7 +64,7 @@ export default function Login() {
         division,
       )
       signIn(data.token, data.user)
-      navigate(`/${division}`, { replace: true })
+      window.location.assign(`${SITE_URL}/${division}?token=${encodeURIComponent(data.token)}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Google sign-in failed.")
     } finally { setLoading(false) }
@@ -91,7 +93,7 @@ export default function Login() {
         method: "POST", body: JSON.stringify({ channel: "email", target, code, name: name.trim(), purpose }),
       }, division)
       signIn(data.token, data.user)
-      navigate(`/${division}`, { replace: true })
+      window.location.assign(`${SITE_URL}/${division}?token=${encodeURIComponent(data.token)}`)
     } catch (e) { setError(e instanceof Error ? e.message : "Verification failed.") }
     finally { setLoading(false) }
   }

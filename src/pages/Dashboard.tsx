@@ -5,6 +5,7 @@ import {
   Plus,
   Minus,
   CreditCard,
+  Globe,
   Rocket,
   TrendingUp,
   Building2,
@@ -23,52 +24,23 @@ import { apiRequest, type BillingCycleChoice } from "@/lib/api"
 interface CatalogService {
   id: string
   label: string
-  price: number
-  type: "oneTime" | "monthly"
-  annual?: number
-  unitLabel?: string
+  description?: string
+  scope?: string
 }
 
 interface CatalogPlan {
   id: string
   name: string
-  oneTime: number
-  monthly: number
-  monthlyName: string
   tagline: string
   timeline: string
+  pricing?: { setup: number; monthly: number; annual?: number; minimumMonths?: number }
   services: CatalogService[]
   addOns: CatalogService[]
 }
 
-const ICONS: Record<string, React.ElementType> = { launch: Rocket, growth: TrendingUp, scale: Building2 }
+const ICONS: Record<string, React.ElementType> = { starter: Globe, launch: Rocket, growth: TrendingUp, scale: Building2 }
 
 const MONEY = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 })
-
-interface RawService {
-  id: string
-  label: string
-  unitLabel?: string
-  aggregate?: { selling?: { setup?: number; monthly?: number; annual?: number } }
-}
-
-// The API catalog exposes tiers via `aggregate.selling` (setup/monthly/annual), not a flat
-// `price`/`type`. Normalise each service once so the rest of this page can read price + cycle safely.
-function toService(s: RawService): CatalogService {
-  const selling = s.aggregate?.selling ?? {}
-  const monthly = selling.monthly ?? 0
-  const setup = selling.setup ?? 0
-  return {
-    id: s.id,
-    label: s.label,
-    unitLabel: s.unitLabel,
-    price: monthly > 0 ? monthly : setup,
-    type: monthly > 0 ? "monthly" : "oneTime",
-    annual: selling.annual,
-  }
-}
-
-const annualOf = (s: CatalogService): number => (s.type === "monthly" ? (s.annual ?? s.price * 12) : 0)
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -100,24 +72,24 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!division) return
-    apiRequest<{ plans: (Omit<CatalogPlan, "services" | "addOns"> & { services: RawService[]; addOns: RawService[] })[] }>("/" + division + "/catalog", {}, division)
-      .then((data) => {
-        const config = user?.planConfig
-        const fromUrl = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("plan") : null
-        const planIdFromConfig = config?.planId || fromUrl || localStorage.getItem("nexbaron-plan-id") || "launch"
-        const found = data.plans.find((p) => p.id === planIdFromConfig) || data.plans[0]
-        if (found) {
-          setPlanId(planIdFromConfig)
-          setPlan({ ...found, services: found.services.map(toService), addOns: found.addOns.map(toService) })
-          if (typeof window !== "undefined") localStorage.setItem("nexbaron-plan-id", planIdFromConfig)
-        }
-        const services = found?.services ?? []
-        if (config?.removedServices) {
-          const e = new Set(services.map((s) => s.id))
-          config.removedServices.forEach((id: string) => e.delete(id))
-          setEnabled(e)
-        } else {
-          setEnabled(new Set(services.map((s) => s.id)))
+        apiRequest<{ plans: CatalogPlan[] }>("/" + division + "/catalog", {}, division)
+          .then((data) => {
+            const config = user?.planConfig
+            const fromUrl = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("plan") : null
+            const planIdFromConfig = config?.planId || fromUrl || localStorage.getItem("nexbaron-plan-id") || "launch"
+            const found = data.plans.find((p) => p.id === planIdFromConfig) || data.plans[0]
+            if (found) {
+              setPlanId(planIdFromConfig)
+              setPlan(found)
+              if (typeof window !== "undefined") localStorage.setItem("nexbaron-plan-id", planIdFromConfig)
+            }
+            const services = found?.services ?? []
+            if (config?.removedServices) {
+              const e = new Set(services.map((s) => s.id))
+              config.removedServices.forEach((id: string) => e.delete(id))
+              setEnabled(e)
+            } else {
+              setEnabled(new Set(services.map((s) => s.id)))
         }
         if (config?.addOns) setAddOns(config.addOns)
         setLoading(false)
@@ -151,21 +123,14 @@ export default function Dashboard() {
     )
   }
 
-  const includedOneTime = plan.services.filter((s) => enabled.has(s.id) && s.type === "oneTime").reduce((s, x) => s + x.price, 0)
-  const includedMonthly = plan.services.filter((s) => enabled.has(s.id) && s.type === "monthly").reduce((s, x) => s + x.price, 0)
-  const includedAnnual = plan.services.filter((s) => enabled.has(s.id) && s.type === "monthly").reduce((s, x) => s + annualOf(x), 0)
-  const addOnOneTime = plan.addOns.filter((a) => (addOns[a.id] || 0) > 0 && a.type === "oneTime").reduce((s, a) => s + a.price * (addOns[a.id] || 0), 0)
-  const addOnMonthly = plan.addOns.filter((a) => (addOns[a.id] || 0) > 0 && a.type === "monthly").reduce((s, a) => s + a.price * (addOns[a.id] || 0), 0)
-  const addOnAnnual = plan.addOns.filter((a) => (addOns[a.id] || 0) > 0 && a.type === "monthly").reduce((s, a) => s + annualOf(a) * (addOns[a.id] || 0), 0)
-
-  const totalOneTime = includedOneTime + addOnOneTime
-  const totalMonthly = includedMonthly + addOnMonthly
-  const totalAnnual = includedAnnual + addOnAnnual
+  const p = plan.pricing ?? { setup: 0, monthly: 0 }
+  const totalOneTime = p.setup
+  const totalMonthly = p.monthly
+  const totalAnnual = p.annual ?? p.monthly * 12
   const recurringTotal = billingCycle === "annual" ? totalAnnual : totalMonthly
   const annualSavings = billingCycle === "annual" ? totalMonthly * 12 - totalAnnual : 0
   const removedCount = plan.services.length - enabled.size
-  const addOnCount = Object.keys(addOns).length
-  const hasChanges = removedCount > 0 || addOnCount > 0
+  const hasChanges = removedCount > 0
   const Icon = ICONS[planId] || Rocket
 
   return (
@@ -219,16 +184,17 @@ export default function Dashboard() {
                     }`}>
                       {on && <Check className="w-2.5 h-2.5 text-white" />}
                     </div>
-                    <span className={`text-sm flex-1 ${on ? "text-heading" : "text-muted/40 line-through"}`}>
-                      {s.label}
-                    </span>
-                    <span className={`text-xs ${on ? "text-muted" : "text-muted/30 line-through"}`}>
-                      {s.type === "monthly"
-                        ? billingCycle === "annual"
-                          ? `${MONEY.format(annualOf(s))}/yr`
-                          : `${MONEY.format(s.price)}/mo`
-                        : MONEY.format(s.price)}
-                    </span>
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-sm ${on ? "text-heading" : "text-muted/40 line-through"}`}>
+                        {s.label}
+                      </span>
+                      {s.scope && (
+                        <span className="block text-[11px] text-accent/60 mt-0.5">{s.scope}</span>
+                      )}
+                      {s.description && (
+                        <span className="block text-[11px] text-muted/50 mt-0.5">{s.description}</span>
+                      )}
+                    </div>
                   </button>
                 )
               })}
@@ -250,13 +216,9 @@ export default function Dashboard() {
                   <div key={a.id} className="flex items-center justify-between px-5 py-3">
                     <div className="flex-1 min-w-0 mr-4">
                       <p className="text-sm text-heading truncate">{a.label}</p>
-                      <p className="text-xs text-muted mt-0.5">
-                        {MONEY.format(a.price)}{a.unitLabel ? ` ${a.unitLabel}` : ""}{a.type === "monthly"
-                          ? billingCycle === "annual"
-                            ? "/yr"
-                            : "/mo"
-                          : ""}
-                      </p>
+                      {a.description && (
+                        <p className="text-xs text-muted mt-0.5">{a.description}</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-1.5">
                       <button
@@ -314,7 +276,7 @@ export default function Dashboard() {
               <div className="flex items-baseline justify-between mb-1">
                 <span className="text-xs text-muted">One-time</span>
                 {removedCount > 0 && (
-                  <span className="text-[10px] text-emerald-400 font-medium">-{MONEY.format(plan.oneTime - includedOneTime)}</span>
+                  <span className="text-[10px] text-emerald-400 font-medium">{removedCount} removed</span>
                 )}
               </div>
               <p className="text-3xl font-extrabold text-heading tracking-tight">{MONEY.format(totalOneTime)}</p>

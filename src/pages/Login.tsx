@@ -141,6 +141,9 @@ export default function Login() {
                   disabled={otpSent}
                   required
                 />
+                <p className="text-xs text-muted">
+                  Use the same email or phone you gave when choosing a plan, contacting us, or chatting on WhatsApp — we link your account to existing conversations.
+                </p>
               </div>
 
               {otpSent && (

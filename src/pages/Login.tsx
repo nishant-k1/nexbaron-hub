@@ -175,8 +175,8 @@ export default function Login() {
                 />
                 <p className="text-xs text-muted">
                   {isRegister
-                    ? "Use the same email you gave when choosing a plan, contacting us, or chatting on WhatsApp — we link your account to existing conversations."
-                    : "Use the same email or phone you gave when choosing a plan, contacting us, or chatting on WhatsApp — we link your account to existing conversations."}
+                    ? "Use the same email you gave when choosing a plan, registering, contacting us, or chatting on WhatsApp — we link your account to existing conversations."
+                    : "Use the same email or phone you gave when choosing a plan, registering, contacting us, or chatting on WhatsApp — we link your account to existing conversations."}
                 </p>
               </div>
 

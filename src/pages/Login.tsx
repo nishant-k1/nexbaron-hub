@@ -64,7 +64,7 @@ export default function Login() {
         division,
       )
       signIn(data.token, data.user)
-      window.location.assign(`${SITE_URL}/${division}?token=${encodeURIComponent(data.token)}`)
+      window.location.assign(`/${division}?token=${encodeURIComponent(data.token)}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Google sign-in failed.")
     } finally { setLoading(false) }
@@ -93,7 +93,7 @@ export default function Login() {
         method: "POST", body: JSON.stringify({ channel: "email", target, code, name: name.trim(), purpose }),
       }, division)
       signIn(data.token, data.user)
-      window.location.assign(`${SITE_URL}/${division}?token=${encodeURIComponent(data.token)}`)
+      window.location.assign(`/${division}?token=${encodeURIComponent(data.token)}`)
     } catch (e) { setError(e instanceof Error ? e.message : "Verification failed.") }
     finally { setLoading(false) }
   }

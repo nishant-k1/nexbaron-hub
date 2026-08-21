@@ -1,6 +1,7 @@
 import { io, type Socket } from "socket.io-client"
 import { getChatUrl } from "./api"
 import type { Division } from "./api"
+import { logger } from "./logger"
 
 export interface ChatSocketEvents {
   "message:new": (payload: { division: Division; message: Record<string, unknown> }) => void
@@ -34,9 +35,9 @@ export function connectChatSocket(options: {
     },
   })
 
-  socket.on("connect", () => console.log("[hub-chat] Connected to", division))
-  socket.on("connect_error", (err) => console.warn("[hub-chat] Connect error:", err.message))
-  socket.on("disconnect", (reason) => console.log("[hub-chat] Disconnected:", reason))
+  socket.on("connect", () => logger.debug("[hub-chat] Connected", { division }))
+  socket.on("connect_error", (err) => logger.error("[hub-chat] Connect error", { division, message: err.message }))
+  socket.on("disconnect", (reason) => logger.debug("[hub-chat] Disconnected", { division, reason }))
 
   ;(Object.keys({
     "message:new": 1,

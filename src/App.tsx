@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "@/auth/auth-context"
 import { ThemeProvider, DivisionProvider } from "@/theme/theme-provider"
 import type { Division } from "@/lib/api"
 import AppLayout from "@/components/layout/AppLayout"
+import { ErrorBoundary } from "@/components/ErrorBoundary"
 import Projects from "@/pages/Projects"
 import ProjectDetail from "@/pages/ProjectDetail"
 import Orders from "@/pages/Orders"
@@ -37,15 +38,15 @@ function HubRoutes() {
 
   return (
     <Routes>
-      <Route path="/:division/login" element={<Login />} />
+      <Route path="/:division/login" element={<ErrorBoundary name="Login"><Login /></ErrorBoundary>} />
       <Route path="/:division" element={user ? <AppLayout /> : <Navigate to="login" replace />}>
-        <Route index element={<Projects />} />
-        <Route path="projects/:projectId" element={<ProjectDetail />} />
-        <Route path="orders" element={<Orders />} />
-        <Route path="progress" element={<Progress />} />
-        <Route path="plan" element={<Plan />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="chat" element={<Chat />} />
+        <Route index element={<ErrorBoundary name="Projects"><Projects /></ErrorBoundary>} />
+        <Route path="projects/:projectId" element={<ErrorBoundary name="ProjectDetail"><ProjectDetail /></ErrorBoundary>} />
+        <Route path="orders" element={<ErrorBoundary name="Orders"><Orders /></ErrorBoundary>} />
+        <Route path="progress" element={<ErrorBoundary name="Progress"><Progress /></ErrorBoundary>} />
+        <Route path="plan" element={<ErrorBoundary name="Plan"><Plan /></ErrorBoundary>} />
+        <Route path="settings" element={<ErrorBoundary name="Settings"><Settings /></ErrorBoundary>} />
+        <Route path="chat" element={<ErrorBoundary name="Chat"><Chat /></ErrorBoundary>} />
       </Route>
       <Route path="*" element={<Navigate to="/digital" replace />} />
     </Routes>

@@ -1,28 +1,39 @@
-import { Component, type ReactNode } from "react";
+import { Component, type ReactNode, type ErrorInfo } from "react"
+import { logger } from "@/lib/logger"
 
 interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
+  children: ReactNode
+  fallback?: ReactNode
+  name?: string
 }
 
 interface State {
-  hasError: boolean;
-  error: Error | null;
+  hasError: boolean
+  error: Error | null
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false, error: null };
+    super(props)
+    this.state = { hasError: false, error: null }
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    logger.error("ErrorBoundary caught render error", {
+      name: this.props.name,
+      message: error.message,
+      stack: error.stack,
+      componentStack: info.componentStack,
+    })
   }
 
   render() {
     if (this.state.hasError) {
-      if (this.props.fallback) return this.props.fallback;
+      if (this.props.fallback) return this.props.fallback
 
       return (
         <div className="min-h-screen flex items-center justify-center bg-neutral-bg">
@@ -54,9 +65,9 @@ export class ErrorBoundary extends Component<Props, State> {
             )}
           </div>
         </div>
-      );
+      )
     }
 
-    return this.props.children;
+    return this.props.children
   }
 }

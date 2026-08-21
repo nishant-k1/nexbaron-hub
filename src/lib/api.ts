@@ -1,5 +1,7 @@
 export type Division = "digital" | "print"
 
+import { logger } from "./logger"
+
 const API_URL_FALLBACK = import.meta.env.VITE_API_URL || "http://localhost:3001"
 
 export function getApiUrl(division: Division): string {
@@ -49,13 +51,29 @@ export class ApiError extends Error {
 }
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}, division: Division): Promise<T> {
-  const response = await fetch(`${getApiUrl(division)}${path}`, {
-    ...options,
-    headers: { ...getAuthHeaders(division), ...(options.headers ?? {}) },
-  })
-  const data = await response.json().catch(() => null)
-  if (!response.ok) throw new ApiError(data?.message ?? `Request failed: ${response.status}`, response.status)
-  return data as T
+  const url = `${getApiUrl(division)}${path}`
+  const method = options.method ?? "GET"
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: { ...getAuthHeaders(division), ...(options.headers ?? {}) },
+    })
+    const data = await response.json().catch(() => null)
+    if (!response.ok) {
+      const err = new ApiError(data?.message ?? `Request failed: ${response.status}`, response.status)
+      logger.error("apiRequest failed", { url, method, status: response.status, message: err.message })
+      throw err
+    }
+    return data as T
+  } catch (error) {
+    if (error instanceof ApiError) throw error
+    logger.error("apiRequest failed", {
+      url,
+      method,
+      message: error instanceof Error ? error.message : String(error),
+    })
+    throw new ApiError(error instanceof Error ? error.message : "Network request failed", 0)
+  }
 }
 
 /**
@@ -63,13 +81,29 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, div
  * Same auth headers as the main API.
  */
 export async function chatApiRequest<T>(path: string, options: RequestInit = {}, division: Division): Promise<T> {
-  const response = await fetch(`${getChatUrl()}${path}`, {
-    ...options,
-    headers: { ...getAuthHeaders(division), ...(options.headers ?? {}) },
-  })
-  const data = await response.json().catch(() => null)
-  if (!response.ok) throw new Error(data?.message ?? `Chat request failed: ${response.status}`)
-  return data as T
+  const url = `${getChatUrl()}${path}`
+  const method = options.method ?? "GET"
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: { ...getAuthHeaders(division), ...(options.headers ?? {}) },
+    })
+    const data = await response.json().catch(() => null)
+    if (!response.ok) {
+      const err = new ApiError(data?.message ?? `Chat request failed: ${response.status}`, response.status)
+      logger.error("chatApiRequest failed", { url, method, status: response.status, message: err.message })
+      throw err
+    }
+    return data as T
+  } catch (error) {
+    if (error instanceof ApiError) throw error
+    logger.error("chatApiRequest failed", {
+      url,
+      method,
+      message: error instanceof Error ? error.message : String(error),
+    })
+    throw new ApiError(error instanceof Error ? error.message : "Chat network request failed", 0)
+  }
 }
 
 export type BillingCycleChoice = "monthly" | "annual"

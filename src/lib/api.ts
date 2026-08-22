@@ -50,7 +50,12 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}, division: Division): Promise<T> {
+export interface RequestOpts {
+  /** Skip error logging (console + Sentry) for best-effort / background calls. */
+  silent?: boolean
+}
+
+export async function apiRequest<T>(path: string, options: RequestInit = {}, division: Division, opts: RequestOpts = {}): Promise<T> {
   const url = `${getApiUrl(division)}${path}`
   const method = options.method ?? "GET"
   try {
@@ -61,13 +66,13 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, div
     const data = await response.json().catch(() => null)
     if (!response.ok) {
       const err = new ApiError(data?.message ?? `Request failed: ${response.status}`, response.status)
-      logger.error("apiRequest failed", { url, method, status: response.status, message: err.message })
+      if (!opts.silent) logger.error("apiRequest failed", { url, method, status: response.status, message: err.message })
       throw err
     }
     return data as T
   } catch (error) {
     if (error instanceof ApiError) throw error
-    logger.error("apiRequest failed", {
+    if (!opts.silent) logger.error("apiRequest failed", {
       url,
       method,
       message: error instanceof Error ? error.message : String(error),
@@ -80,7 +85,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, div
  * Chat requests hit the dedicated chat service (both divisions from one host).
  * Same auth headers as the main API.
  */
-export async function chatApiRequest<T>(path: string, options: RequestInit = {}, division: Division): Promise<T> {
+export async function chatApiRequest<T>(path: string, options: RequestInit = {}, division: Division, opts: RequestOpts = {}): Promise<T> {
   const url = `${getChatUrl()}${path}`
   const method = options.method ?? "GET"
   try {
@@ -91,13 +96,13 @@ export async function chatApiRequest<T>(path: string, options: RequestInit = {},
     const data = await response.json().catch(() => null)
     if (!response.ok) {
       const err = new ApiError(data?.message ?? `Chat request failed: ${response.status}`, response.status)
-      logger.error("chatApiRequest failed", { url, method, status: response.status, message: err.message })
+      if (!opts.silent) logger.error("chatApiRequest failed", { url, method, status: response.status, message: err.message })
       throw err
     }
     return data as T
   } catch (error) {
     if (error instanceof ApiError) throw error
-    logger.error("chatApiRequest failed", {
+    if (!opts.silent) logger.error("chatApiRequest failed", {
       url,
       method,
       message: error instanceof Error ? error.message : String(error),
@@ -113,77 +118,4 @@ export interface AuthUser {
   division: Division; photo?: string | null; planConfig?: PlanConfig | null
 }
 
-// ─── Hub Types ───
 
-export type PipelineStage = "inquiry" | "proposal" | "commit" | "build" | "delivery"
-
-export interface ProjectSummary {
-  projectId: string
-  stage: PipelineStage
-  leadId: string
-  customerName: string
-  customerEmail?: string
-  customerPhone?: string
-  plan?: string
-  source: string
-  leadStatus: string
-  latestQuote: { id: string; status: string; price?: number } | null
-  latestOrder: { id: string; status: string; amount: number; amountPaid: number; milestones: { done: number; total: number } } | null
-  unreadChats: number
-  lastActivity: string | null
-  createdAt: string
-}
-
-export interface ProjectDetail {
-  lead: {
-    _id: string
-    name: string
-    email?: string
-    phone?: string
-    plan?: string
-    status: string
-    message?: string
-  }
-  quotes: {
-    _id: string
-    quoteNumber: string
-    status: string
-    selection: Record<string, unknown>
-    response?: { price?: number; message?: string; sentAt?: string } | null
-  }[]
-  orders: {
-    _id: string
-    status: string
-    amount: number
-    amountPaid: number
-    launchDate?: string
-    milestones?: { key: string; label: string; dayLabel: string; status: string; date?: string }[]
-    invoiceNumber?: string
-  }[]
-  chat: { _id: string; sender: string; message: string; createdAt: string }[]
-  stage: PipelineStage
-}
-
-export const PIPELINE_LABELS: Record<PipelineStage, string> = {
-  inquiry: "Inquiry",
-  proposal: "Proposal",
-  commit: "Commit",
-  build: "Build",
-  delivery: "Delivery",
-}
-
-export const PIPELINE_STAGES: PipelineStage[] = ["inquiry", "proposal", "commit", "build", "delivery"]
-
-// ─── Hub API Functions ───
-
-export async function fetchMyProjects(division: Division): Promise<{ projects: ProjectSummary[]; pipeline: Record<string, number> }> {
-  return apiRequest(`/${division}/projects`, {}, division)
-}
-
-export async function fetchMyProject(division: Division, projectId: string): Promise<{ project: ProjectDetail }> {
-  return apiRequest(`/${division}/projects/${projectId}`, {}, division)
-}
-
-export async function fetchMyOrders(division: Division): Promise<{ orders: any[] }> {
-  return apiRequest(`/${division}/payments/orders/mine`, {}, division)
-}

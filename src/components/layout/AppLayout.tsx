@@ -1,30 +1,26 @@
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
-import { LayoutDashboard, FileText, Receipt, MessageCircle, LogOut, X, AlertTriangle, Loader2, Bell, Sun, Moon, Package, CreditCard } from "lucide-react"
+import { LayoutDashboard, LogOut, X, AlertTriangle, Loader2, Bell, Sun, Moon, Package, MessageSquare, FileText, Receipt } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { io, type Socket } from "socket.io-client"
 import { useAuth } from "@/auth/auth-context"
 import { useDivision, useTheme } from "@/theme/theme-provider"
 import { BrandMark } from "@/components/brand/BrandMark"
+import { Dropdown } from "@/components/ui/dropdown"
 import { cn } from "@/lib/cn"
 import { apiRequest, chatApiRequest, getChatUrl, getToken } from "@/lib/api"
 
 const PAGE_TITLES: Record<string, string> = {
-  "": "Projects", orders: "My Orders", progress: "Progress", chat: "Chat", plan: "My Plan", projects: "Project Detail",
+  "": "Dashboard", packages: "Packages", messages: "Messages",
+  proposals: "Proposals", billing: "Billing", settings: "Settings",
 }
+
+const STAGE_ORDER = ["REGISTERED", "LEAD", "PACKAGE_SELECTED", "PROPOSAL_SENT", "PROPOSAL_ACCEPTED", "PAYMENT_PENDING", "CUSTOMER"]
 
 export default function AppLayout() {
   const { user, signOut } = useAuth()
   const division = useDivision()
   const { mode, toggle } = useTheme()
   const location = useLocation()
-
-  const NAV = [
-    { to: `/${division}`, label: "Projects", icon: Package, end: true },
-    { to: `/${division}/plan`, label: "My Plan", icon: CreditCard },
-    { to: `/${division}/orders`, label: "My Orders", icon: FileText },
-    { to: `/${division}/progress`, label: "Progress", icon: Receipt },
-    { to: `/${division}/chat`, label: "Chat", icon: MessageCircle },
-  ]
 
   const segments = location.pathname.replace(`/${division}`, "").split("/").filter(Boolean)
   const pageTitle = PAGE_TITLES[segments[0] || ""] || segments[0] || "Projects"
@@ -35,19 +31,38 @@ export default function AppLayout() {
   const [saving, setSaving] = useState(false)
   const [profileForm, setProfileForm] = useState({ name: "", email: "", phone: "" })
   const [settingsError, setSettingsError] = useState("")
-  const [notifOpen, setNotifOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
-  const notifRef = useRef<HTMLDivElement>(null)
+  const [accountStage, setAccountStage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!division) return
-    const poll = () => {
-      chatApiRequest<{ success: boolean; messages?: Array<{ isRead: boolean; sender: string }> }>(`/${division}/chat`, {}, division!)
+    apiRequest<{ success: boolean; account?: { lifecycleStage?: string } }>(`/${division}/account`, {}, division!)
+      .then((d) => setAccountStage(d.account?.lifecycleStage ?? null))
+      .catch(() => setAccountStage(null))
+  }, [division])
+
+  const stageIdx = accountStage ? STAGE_ORDER.indexOf(accountStage) : -1
+  const NAV: Array<{ to: string; label: string; icon: React.ComponentType<{ className?: string }>; end?: boolean; badge?: number }> = [
+    { to: `/${division}`, label: "Dashboard", icon: LayoutDashboard, end: true },
+    { to: `/${division}/messages`, label: "Messages", icon: MessageSquare, badge: unreadCount || undefined },
+    ...(division === "digital"
+      ? [{ to: `/${division}/packages`, label: "Packages", icon: Package }]
+      : []),
+    ...(division === "digital" && stageIdx >= 3
+      ? [{ to: `/${division}/proposals`, label: "Proposals", icon: FileText }]
+      : []),
+    ...(division === "digital" && stageIdx >= 5
+      ? [{ to: `/${division}/billing`, label: "Billing", icon: Receipt }]
+      : []),
+  ]
+
+  useEffect(() => {
+    if (!division) return
+    const poll = () => chatApiRequest<{ success: boolean; messages?: Array<{ isRead: boolean; sender: string }> }>(`/${division}/chat`, {}, division!, { silent: true })
         .then((d) => {
           const msgs = d.messages || []
           setUnreadCount(msgs.filter((m) => m.sender === "agent" && !m.isRead).length)
         }).catch(() => {})
-    }
     poll()
     let socket: Socket | null = null
     const token = getToken(division)
@@ -59,13 +74,6 @@ export default function AppLayout() {
     socket.on("message:read", poll)
     return () => { socket?.disconnect() }
   }, [division])
-
-  useEffect(() => {
-    if (!notifOpen) return
-    const handler = (e: MouseEvent) => { if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false) }
-    document.addEventListener("mousedown", handler)
-    return () => document.removeEventListener("mousedown", handler)
-  }, [notifOpen])
 
   useEffect(() => {
     if (settingsOpen) {
@@ -108,7 +116,7 @@ export default function AppLayout() {
 
         <nav className="px-3 py-4 space-y-1 flex-1">
           <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">Menu</p>
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {NAV.map(({ to, label, icon: Icon, end, badge }) => (
             <NavLink key={to} to={to} end={end}
               className={({ isActive }) => cn(
                 "relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
@@ -118,6 +126,11 @@ export default function AppLayout() {
                 <>
                   <Icon className="h-[18px] w-[18px]" />
                   {label}
+                  {badge ? (
+                    <span className="ml-auto flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                      {badge > 9 ? "9+" : badge}
+                    </span>
+                  ) : null}
                   {isActive && (
                     <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r bg-accent" />
                   )}
@@ -168,35 +181,39 @@ export default function AppLayout() {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <div ref={notifRef} className="relative">
-              <button onClick={() => setNotifOpen(!notifOpen)}
-                className="cursor-pointer relative text-muted hover:text-heading transition-colors">
-                <Bell className="w-4 h-4" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white ring-2 ring-neutral-surface">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </button>
-              {notifOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 bg-neutral-surface rounded-xl shadow-2xl z-50 overflow-hidden">
+            <Dropdown
+              aria-label="Notifications"
+              menuClassName="w-72"
+              trigger={
+                <button className="cursor-pointer relative text-muted hover:text-heading transition-colors">
+                  <Bell className="w-4 h-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white ring-2 ring-neutral-surface">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+              }
+            >
+              {(close) => (
+                <>
                   <div className="px-4 py-3 flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-heading">Messages</h3>
-                    <button onClick={() => setNotifOpen(false)} className="cursor-pointer text-muted hover:text-heading"><X className="w-4 h-4" /></button>
+                    <button onClick={close} className="cursor-pointer text-muted hover:text-heading"><X className="w-4 h-4" /></button>
                   </div>
                   <div className="p-4 text-center">
                     {unreadCount > 0 ? (
-                      <Link to={`/${division}/chat`} onClick={() => setNotifOpen(false)}
-                        className="text-sm text-accent hover:underline">
-                        {unreadCount} new message{unreadCount > 1 ? "s" : ""} — open Chat
-                      </Link>
+                       <Link to={`/${division}`} onClick={close}
+                         className="text-sm text-accent hover:underline">
+                         {unreadCount} new message{unreadCount > 1 ? "s" : ""} — open
+                       </Link>
                     ) : (
                       <p className="text-sm text-muted">No new messages</p>
                     )}
                   </div>
-                </div>
+                </>
               )}
-            </div>
+            </Dropdown>
           </div>
         </header>
         <main className="flex-1 p-6 lg:p-8 overflow-auto">

@@ -83,7 +83,7 @@ export default function ChatPage() {
   const loadMessages = useCallback((initial = false) => {
     if (!division) return;
     if (initial) { setLoading(true); setLoadError(null); }
-    chatApiRequest<{ success: boolean; messages: ChatMessage[]; hasMore?: boolean }>(`/${division}/chat`, {}, division!)
+    chatApiRequest<{ success: boolean; messages: ChatMessage[]; hasMore?: boolean }>(`/${division}/chat`, {}, division!, initial ? {} : { silent: true })
       .then((data) => setMessages((prev) => {
         const next = data.messages || [];
         setHasMore(!!data.hasMore)
@@ -102,7 +102,7 @@ export default function ChatPage() {
     try {
       const oldest = messages[0]
       const data = await chatApiRequest<{ success: boolean; messages: ChatMessage[]; hasMore?: boolean }>(
-        `/${division}/chat?before=${oldest?._id ?? ""}`, {}, division!
+        `/${division}/chat?before=${oldest?._id ?? ""}`, {}, division!, { silent: true }
       )
       setMessages((prev) => [...(data.messages || []), ...prev])
       setHasMore(!!data.hasMore)
@@ -148,7 +148,7 @@ export default function ChatPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
-    }, division!).catch(() => {})
+    }, division!, { silent: true }).catch(() => {})
   }, [division, messages])
 
   // Presence heartbeat so the CRM shows an accurate online indicator.
@@ -159,7 +159,7 @@ export default function ChatPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
-      }, division!).catch(() => {})
+      }, division!, { silent: true }).catch(() => {})
     }
     beat()
     const interval = setInterval(beat, 30000)

@@ -36,7 +36,7 @@ export function connectChatSocket(options: {
   })
 
   socket.on("connect", () => logger.debug("[hub-chat] Connected", { division }))
-  socket.on("connect_error", (err) => logger.error("[hub-chat] Connect error", { division, message: err.message }))
+  socket.on("connect_error", (err) => logger.debug("[hub-chat] Connect error", { division, message: err.message }))
   socket.on("disconnect", (reason) => logger.debug("[hub-chat] Disconnected", { division, reason }))
 
   ;(Object.keys({

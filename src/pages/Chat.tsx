@@ -258,7 +258,7 @@ export default function ChatPage() {
             <div className="text-center">
               <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30 text-muted" />
               <p className="text-sm font-medium text-heading">{loadError}</p>
-              <button onClick={() => loadMessages()} className="cursor-pointer mt-3 px-4 py-2 bg-accent text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity">Retry</button>
+              <button onClick={() => loadMessages()} className="cursor-pointer mt-3 px-4 py-2 bg-accent text-accent-fg rounded-xl text-sm font-medium hover:opacity-90 transition-opacity">Retry</button>
             </div>
           </div>
         ) : messages.length === 0 ? (
@@ -368,7 +368,7 @@ export default function ChatPage() {
         <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type your message..." disabled={sending}
           className="flex-1 px-4 py-3.5 bg-neutral-bg rounded-xl text-sm text-heading placeholder:text-muted focus:outline-none disabled:opacity-50" />
         <button type="submit" disabled={(!input.trim() && attachments.length === 0) || sending}
-          className="cursor-pointer px-5 py-3.5 bg-accent text-white rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity">
+          className="cursor-pointer px-5 py-3.5 bg-accent text-accent-fg rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity">
           <Send className="w-5 h-5" />
         </button>
       </form>

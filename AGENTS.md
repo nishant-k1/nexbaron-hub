@@ -44,7 +44,7 @@ CSS-variable tokens (`--accent-color`, `--accent`, `--border`, `--bg`, `--headin
 **Theme rules (MUST follow):**
 - Never use hardcoded dark-mode-only colors: avoid `text-white`, `text-slate-*`, `bg-slate-900`, `bg-slate-950`, `border-white/*`.
 - Always use theme tokens: `text-heading`, `text-muted`, `bg-neutral-bg`, `bg-neutral-surface`, `border-border`.
-- Exception: `text-white` is allowed only on `bg-accent` buttons/badges (always contrast-safe).
+- Buttons/badges on `bg-accent` MUST use `text-accent-fg` (theme-aware: dark in dark themes, white in light themes). Never use `text-white` on `bg-accent` — in dark themes the accent is light teal/amber, so white text is low-contrast.
 - Before creating any new page/component, reference `Dashboard.tsx` or `Orders.tsx` for correct theme class usage.
 
 ### Conventions
@@ -102,7 +102,7 @@ You are a world-class UX/UI designer. Every interface you build must reflect thi
 - Error: bordered card with message + retry.
 
 ### Buttons
-- Primary: `bg-accent text-white rounded-xl font-bold hover:opacity-90`.
+- Primary: `bg-accent text-accent-fg rounded-xl font-bold hover:opacity-90`.
 - Outline/secondary: `border border-muted rounded-xl`.
 - Never use raw `<button>` without these classes.
 

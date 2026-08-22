@@ -253,7 +253,7 @@ export default function AppLayout() {
               </div>
               {settingsError && <p className="text-sm text-red-400">{settingsError}</p>}
               <button onClick={handleUpdateProfile} disabled={saving}
-                className="cursor-pointer w-full py-2.5 bg-accent text-white font-bold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2">
+                className="cursor-pointer w-full py-2.5 bg-accent text-accent-fg font-bold rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity flex items-center justify-center gap-2">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Save Changes
               </button>
               <div className="pt-4">

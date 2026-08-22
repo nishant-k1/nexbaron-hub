@@ -293,7 +293,7 @@ function ProposalDetail({
               <button
                 onClick={onAccept}
                 disabled={!agreed || accepting}
-                className="cursor-pointer px-5 py-2.5 bg-accent text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                className="cursor-pointer px-5 py-2.5 bg-accent text-accent-fg rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
               >
                 {accepting ? "Submitting…" : "Accept proposal"}
               </button>

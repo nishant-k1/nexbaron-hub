@@ -186,7 +186,7 @@ export default function Billing() {
                     <button
                       onClick={() => pay(inv)}
                       disabled={paying === inv.invoiceNumber}
-                      className="cursor-pointer px-4 py-2.5 bg-accent text-white rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-opacity"
+                      className="cursor-pointer px-4 py-2.5 bg-accent text-accent-fg rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-opacity"
                     >
                       {paying === inv.invoiceNumber ? "Processing…" : "Pay now"}
                     </button>

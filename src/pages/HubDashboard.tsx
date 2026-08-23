@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDivision } from "@/theme/theme-provider";
 import { apiRequest, type Division } from "@/lib/api";
-import { Package, FileText, Receipt, MessageSquare, ArrowUpRight } from "lucide-react";
+import { Package, FileText, Receipt, MessageSquare, ArrowUpRight, Hash } from "lucide-react";
 
 interface Account {
   accountCode: string;
@@ -14,7 +14,7 @@ interface Account {
 const STAGE_LABELS: Record<string, string> = {
   REGISTERED: "Getting started",
   LEAD: "Lead",
-  PACKAGE_SELECTED: "Package selected",
+  PACKAGE_SELECTED: "Plan selected",
   PROPOSAL_SENT: "Proposal sent",
   PROPOSAL_ACCEPTED: "Proposal accepted",
   PAYMENT_PENDING: "Payment pending",
@@ -52,7 +52,7 @@ export default function HubDashboard() {
   const cards =
     division === "digital"
       ? [
-          { to: `/${division}/packages`, label: "Packages", desc: "Track delivery of your service packages.", icon: Package, count: counts.packages },
+          { to: `/${division}/plans`, label: "Plans", desc: "Track delivery of your service plans.", icon: Package, count: counts.packages },
           { to: `/${division}/proposals`, label: "Proposals", desc: "Review and respond to proposals.", icon: FileText, count: counts.proposals },
           { to: `/${division}/billing`, label: "Billing", desc: "View invoices and make payments.", icon: Receipt, count: counts.invoices },
           { to: `/${division}/messages`, label: "Messages", desc: "Chat with our team.", icon: MessageSquare, count: 0 },
@@ -62,7 +62,7 @@ export default function HubDashboard() {
         ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-heading">Welcome back{account ? `, ${account.name.split(" ")[0]}` : ""}</h1>
@@ -76,10 +76,17 @@ export default function HubDashboard() {
       </div>
 
       {account && (
-        <div className="rounded-2xl bg-neutral-surface border border-border p-5 text-sm">
-          <p className="text-muted text-xs">Account</p>
-          <p className="text-heading font-semibold mt-0.5">{account.accountCode}</p>
-          {account.email && <p className="text-muted">{account.email}</p>}
+        <div className="rounded-2xl bg-neutral-surface border border-border p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">Account ID</p>
+              <p className="text-2xl font-extrabold tracking-tight text-heading mt-1 font-mono">{account.accountCode}</p>
+              {account.email && <p className="text-sm text-muted mt-1">{account.email}</p>}
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0">
+              <Hash className="w-6 h-6" />
+            </div>
+          </div>
         </div>
       )}
 

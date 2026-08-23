@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
-import { LayoutDashboard, LogOut, X, AlertTriangle, Loader2, Bell, Sun, Moon, Package, MessageSquare, FileText, Receipt } from "lucide-react"
-import { useState, useEffect, useRef } from "react"
+import { LayoutDashboard, LogOut, X, AlertTriangle, Loader2, Bell, Sun, Moon, Package, MessageSquare, FileText, ShoppingBag, Receipt, ChevronRight, Home } from "lucide-react"
+import { Fragment, useState, useEffect, useRef } from "react"
 import { io, type Socket } from "socket.io-client"
 import { useAuth } from "@/auth/auth-context"
 import { useDivision, useTheme } from "@/theme/theme-provider"
@@ -10,8 +10,8 @@ import { cn } from "@/lib/cn"
 import { apiRequest, chatApiRequest, getChatUrl, getToken } from "@/lib/api"
 
 const PAGE_TITLES: Record<string, string> = {
-  "": "Dashboard", packages: "Packages", messages: "Messages",
-  proposals: "Proposals", billing: "Billing", settings: "Settings",
+  "": "Dashboard", plans: "Plans", packages: "Plans", messages: "Messages",
+  proposals: "Proposals", orders: "Orders", billing: "Billing", settings: "Settings",
 }
 
 const STAGE_ORDER = ["REGISTERED", "LEAD", "PACKAGE_SELECTED", "PROPOSAL_SENT", "PROPOSAL_ACCEPTED", "PAYMENT_PENDING", "CUSTOMER"]
@@ -23,7 +23,6 @@ export default function AppLayout() {
   const location = useLocation()
 
   const segments = location.pathname.replace(`/${division}`, "").split("/").filter(Boolean)
-  const pageTitle = PAGE_TITLES[segments[0] || ""] || segments[0] || "Projects"
   const initials = (user?.name || "?").split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase()
 
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -32,28 +31,34 @@ export default function AppLayout() {
   const [profileForm, setProfileForm] = useState({ name: "", email: "", phone: "" })
   const [settingsError, setSettingsError] = useState("")
   const [unreadCount, setUnreadCount] = useState(0)
-  const [accountStage, setAccountStage] = useState<string | null>(null)
+  const [account, setAccount] = useState<{ accountCode: string; company?: string; lifecycleStage: string } | null>(null)
 
   useEffect(() => {
     if (!division) return
-    apiRequest<{ success: boolean; account?: { lifecycleStage?: string } }>(`/${division}/account`, {}, division!)
-      .then((d) => setAccountStage(d.account?.lifecycleStage ?? null))
-      .catch(() => setAccountStage(null))
+    apiRequest<{ success: boolean; account?: { accountCode: string; company?: string; lifecycleStage: string } }>(`/${division}/account`, {}, division!)
+      .then((d) => setAccount(d.account ?? null))
+      .catch(() => setAccount(null))
   }, [division])
 
+  const accountStage = account?.lifecycleStage ?? null
   const stageIdx = accountStage ? STAGE_ORDER.indexOf(accountStage) : -1
   const NAV: Array<{ to: string; label: string; icon: React.ComponentType<{ className?: string }>; end?: boolean; badge?: number }> = [
-    { to: `/${division}`, label: "Dashboard", icon: LayoutDashboard, end: true },
-    { to: `/${division}/messages`, label: "Messages", icon: MessageSquare, badge: unreadCount || undefined },
-    ...(division === "digital"
-      ? [{ to: `/${division}/packages`, label: "Packages", icon: Package }]
+    ...(division === "print"
+      ? [{ to: `/${division}`, label: "Dashboard", icon: LayoutDashboard, end: true }]
       : []),
-    ...(division === "digital" && stageIdx >= 3
+    ...(division === "digital"
+      ? [{ to: `/${division}/plans`, label: "Plans", icon: Package }]
+      : []),
+    ...(division === "digital" && stageIdx >= 2
       ? [{ to: `/${division}/proposals`, label: "Proposals", icon: FileText }]
       : []),
     ...(division === "digital" && stageIdx >= 5
-      ? [{ to: `/${division}/billing`, label: "Billing", icon: Receipt }]
+      ? [
+          { to: `/${division}/orders`, label: "Orders", icon: ShoppingBag },
+          { to: `/${division}/billing`, label: "Billing", icon: Receipt },
+        ]
       : []),
+    { to: `/${division}/messages`, label: "Messages", icon: MessageSquare, badge: unreadCount || undefined },
   ]
 
   useEffect(() => {
@@ -154,8 +159,14 @@ export default function AppLayout() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-heading truncate">{user?.name}</p>
+                {account?.accountCode && (
+                  <div className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-accent/10 border border-accent/20 px-2.5 py-0.5">
+                    <span className="text-[11px] font-extrabold font-mono tracking-wide text-accent">{account.accountCode}</span>
+                  </div>
+                )}
+                {account?.company && <p className="text-[11px] text-muted truncate mt-0.5">{account.company}</p>}
                 <button onClick={() => setSettingsOpen(true)}
-                  className="cursor-pointer text-[11px] capitalize text-muted truncate block w-full text-left hover:text-accent">
+                  className="cursor-pointer text-[11px] capitalize text-muted truncate block w-full text-left hover:text-accent mt-0.5">
                   Account settings
                 </button>
               </div>
@@ -173,22 +184,45 @@ export default function AppLayout() {
 
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-neutral-bg flex items-center justify-between px-6 shrink-0">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-semibold text-heading tracking-tight">{pageTitle}</h2>
-            {segments.length > 1 && (
-              <span className="text-muted text-sm">/ {segments[1]}</span>
+        <header className="h-16 bg-neutral-bg flex items-center justify-between px-6 shrink-0 gap-4">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm min-w-0 overflow-hidden">
+            <Link to={`/${division}`} className="flex items-center gap-1.5 text-muted hover:text-heading transition-colors shrink-0">
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline capitalize font-medium">{division}</span>
+            </Link>
+            {segments.length === 0 ? (
+              <>
+                <ChevronRight className="w-3.5 h-3.5 text-muted shrink-0" />
+                <span className="font-semibold text-heading truncate">Dashboard</span>
+              </>
+            ) : (
+              segments.map((seg, idx) => {
+                const isLast = idx === segments.length - 1
+                const raw = PAGE_TITLES[seg] || seg.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+                const label = raw.length > 24 ? raw.slice(0, 24) + "…" : raw
+                const href = `/${division}/${segments.slice(0, idx + 1).join("/")}`
+                return (
+                  <Fragment key={href}>
+                    <ChevronRight className="w-3.5 h-3.5 text-muted shrink-0" />
+                    {isLast ? (
+                      <span className="font-semibold text-heading truncate" title={raw}>{label}</span>
+                    ) : (
+                      <Link to={href} className="text-muted hover:text-heading truncate transition-colors" title={raw}>{label}</Link>
+                    )}
+                  </Fragment>
+                )
+              })
             )}
-          </div>
+          </nav>
           <div className="flex items-center gap-3">
             <Dropdown
               aria-label="Notifications"
               menuClassName="w-72"
               trigger={
-                <button className="cursor-pointer relative text-muted hover:text-heading transition-colors">
-                  <Bell className="w-4 h-4" />
+                <button className="cursor-pointer relative flex items-center justify-center w-9 h-9 rounded-xl bg-neutral-surface border border-border text-muted hover:text-heading hover:border-accent/30 transition-colors">
+                  <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white ring-2 ring-neutral-surface">
+                    <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white leading-none ring-2 ring-neutral-bg">
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
@@ -234,7 +268,13 @@ export default function AppLayout() {
                 <div className="w-14 h-14 rounded-full bg-accent/10 text-accent flex items-center justify-center text-xl font-bold">{initials}</div>
                 <div>
                   <p className="font-semibold text-heading">{user?.name}</p>
-                  <p className="text-xs text-muted">Update your account details below</p>
+                  {account?.accountCode && (
+                    <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/20 px-2.5 py-1">
+                      <span className="text-xs font-extrabold font-mono tracking-wide text-accent">{account.accountCode}</span>
+                    </div>
+                  )}
+                  {account?.company && <p className="text-xs text-muted mt-1">{account.company}</p>}
+                  <p className="text-xs text-muted mt-1">Update your account details below</p>
                 </div>
               </div>
               <div className="space-y-3">

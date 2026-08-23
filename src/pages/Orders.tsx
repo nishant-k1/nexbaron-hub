@@ -1,0 +1,298 @@
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDivision } from "@/theme/theme-provider";
+import { apiRequest, type Division } from "@/lib/api";
+import { cn } from "@/lib/cn";
+import {
+  FileText,
+  Calendar,
+  ArrowRight,
+  Loader2,
+  Package,
+  Truck,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  Building2,
+  CreditCard,
+  Search,
+  X,
+  Filter,
+} from "lucide-react";
+import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
+
+const STATUS_META: Record<string, { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }> = {
+  pending: { label: "Pending", cls: "bg-amber-500/15 text-amber-600", icon: Clock },
+  paid: { label: "Paid", cls: "bg-emerald-500/15 text-emerald-600", icon: CheckCircle2 },
+  in_progress: { label: "In Progress", cls: "bg-blue-500/15 text-blue-600", icon: Package },
+  delivered: { label: "Delivered", cls: "bg-emerald-500/15 text-emerald-600", icon: CheckCircle2 },
+  cancelled: { label: "Cancelled", cls: "bg-neutral-bg text-muted", icon: AlertTriangle },
+};
+
+const MILESTONE_STATUS_META: Record<string, { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }> = {
+  pending: { label: "Pending", cls: "bg-neutral-bg text-muted", icon: Clock },
+  in_progress: { label: "In Progress", cls: "bg-blue-500/15 text-blue-600", icon: Package },
+  done: { label: "Done", cls: "bg-emerald-500/15 text-emerald-600", icon: CheckCircle2 },
+};
+
+interface OrderItem {
+  kind: string;
+  label: string;
+  price: number;
+}
+
+interface Milestone {
+  key: string;
+  label: string;
+  dayLabel: string;
+  date?: string;
+  status: "pending" | "in_progress" | "done";
+  completedAt?: string;
+}
+
+interface Order {
+  _id: string;
+  projectId: string;
+  invoiceNumber?: string;
+  proposalCode?: string;
+  service?: string;
+  amount: number;
+  currency: string;
+  status: string;
+  items: OrderItem[];
+  milestones: Milestone[];
+  createdAt: string;
+  updatedAt: string;
+  customer?: {
+    name: string;
+    email?: string;
+    phone?: string;
+    company?: string;
+    city?: string;
+  };
+}
+
+const inr = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+});
+
+const PACKAGE_OPTIONS = [
+  { value: "", label: "All Plans" },
+  { value: "starter", label: "Starter" },
+  { value: "launch", label: "Launch" },
+  { value: "growth", label: "Growth" },
+  { value: "scale", label: "Scale" },
+  { value: "custom", label: "Custom" },
+];
+
+export default function Orders() {
+  const division = useDivision();
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [packageFilter, setPackageFilter] = useState("");
+
+  useEffect(() => {
+    if (!division) return;
+    let active = true;
+    setLoading(true);
+    apiRequest<{ success: boolean; orders: Order[] }>(`/${division}/orders`, {}, division as Division)
+      .then((d) => {
+        if (!active) return;
+        setOrders(d.orders || []);
+        setError("");
+      })
+      .catch((e) => {
+        if (!active) return;
+        setError(e instanceof Error ? e.message : "Failed to load orders");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [division]);
+
+  const handleViewOrder = (orderId: string) => {
+    navigate(`/${division}/orders/${orderId}`);
+  };
+
+  // Filter orders based on package filter
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const matchesPackage = !packageFilter || order.service === packageFilter;
+      return matchesPackage;
+    });
+  }, [orders, packageFilter]);
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-heading">Orders</h1>
+          <p className="text-sm text-muted mt-0.5">Track your orders and delivery progress.</p>
+        </div>
+        <div className="relative">
+          <select
+            value={packageFilter}
+            onChange={(e) => setPackageFilter(e.target.value)}
+            className="appearance-none bg-neutral-surface border border-border rounded-xl px-4 py-2.5 text-sm font-medium text-heading focus:outline-none focus:border-accent/50 pr-10 cursor-pointer"
+          >
+            <option value="">All Plans</option>
+            <option value="starter">Starter</option>
+            <option value="launch">Launch</option>
+            <option value="growth">Growth</option>
+            <option value="scale">Scale</option>
+            <option value="custom">Custom</option>
+          </select>
+          <Filter className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted pointer-events-none" />
+        </div>
+      </div>
+
+      {error && (
+        <div className="rounded-2xl border border-red-500/30 bg-neutral-surface p-4 text-sm text-red-500">{error}</div>
+      )}
+
+      {loading ? (
+        <div className="space-y-3 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <SkeletonCard key={i}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  <Skeleton className="h-9 w-9 rounded-xl" />
+                  <div>
+                    <Skeleton className="h-4 w-28 rounded" />
+                    <Skeleton className="h-3 w-20 rounded mt-1" />
+                  </div>
+                </div>
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-6 w-24 rounded mt-4" />
+              <div className="mt-3 pt-3 border-t border-border/60">
+                <Skeleton className="h-3 w-16 rounded mb-2" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                  <Skeleton className="h-5 w-24 rounded-full" />
+                </div>
+              </div>
+            </SkeletonCard>
+          ))}
+        </div>
+      ) : filteredOrders.length === 0 ? (
+        <div className="rounded-2xl bg-neutral-surface border border-border p-12 flex flex-col items-center text-center">
+          <div className="w-14 h-14 rounded-full bg-neutral-bg text-muted flex items-center justify-center mb-4">
+            <Package className="h-6 w-6" />
+          </div>
+          <h3 className="font-semibold text-heading mb-1">
+            {packageFilter ? "No matching orders" : "No orders yet"}
+          </h3>
+          <p className="text-sm text-muted max-w-[320px]">
+            {packageFilter ? "Try adjusting your filter" : "Orders appear here after your payment is confirmed."}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredOrders.map((order) => {
+            const meta = STATUS_META[order.status] || { label: order.status, cls: "bg-neutral-bg text-muted", icon: FileText };
+            const Icon = meta.icon;
+            return (
+              <div
+                key={order._id}
+                role="button"
+                tabIndex={0}
+                className="group rounded-2xl bg-neutral-surface border border-border p-5 cursor-pointer hover:border-accent/30 transition-colors"
+                onClick={() => handleViewOrder(order._id)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleViewOrder(order._id); }}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
+                      <Package className="h-4.5 w-4.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-heading truncate">{order.projectId}</p>
+                      <p className="text-xs text-muted">{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="hidden sm:block text-base font-bold text-heading">{inr.format(order.amount)}</span>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.cls}`}>
+                      <Icon className="h-3.5 w-3.5" /> {meta.label}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {order.milestones.slice(0, 4).map((ms, i) => {
+                      const mMeta = MILESTONE_STATUS_META[ms.status] || { label: ms.status, cls: "bg-neutral-bg text-muted", icon: Clock };
+                      const MilestoneIcon = mMeta.icon;
+                      return (
+                        <span key={ms.key || i} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${mMeta.cls}`}>
+                          <MilestoneIcon className="h-3 w-3" /> {ms.label}
+                        </span>
+                      );
+                    })}
+                    {order.milestones.length > 4 && (
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-neutral-bg text-muted">
+                        +{order.milestones.length - 4} more
+                      </span>
+                    )}
+                    {order.milestones.length === 0 && <span className="text-xs text-muted">No milestones</span>}
+                  </div>
+                  <span className="text-xs font-medium text-muted group-hover:text-accent transition-colors flex items-center gap-1 shrink-0">
+                    View <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
+                </div>
+                <p className="sm:hidden text-base font-bold text-heading mt-3">{inr.format(order.amount)}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SkeletonList({ items = 3 }: { items?: number }) {
+  return (
+    <ul className="space-y-2 animate-pulse">
+      {Array.from({ length: items }).map((_, i) => (
+        <li key={i} className="flex justify-between text-sm py-2 px-3 rounded-lg bg-neutral-bg">
+          <Skeleton className="h-4 w-32 rounded" />
+          <Skeleton className="h-4 w-20 rounded" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function SkeletonTable({ rows = 5 }: { rows?: number }) {
+  return (
+    <div className="rounded-lg border border-border overflow-hidden animate-pulse">
+      <div className="bg-neutral-bg border-b border-border p-3">
+        <div className="flex gap-4">
+          <Skeleton className="h-3 w-12 rounded" />
+          <Skeleton className="h-3 w-24 rounded" />
+          <Skeleton className="h-3 w-16 rounded" />
+          <Skeleton className="h-3 w-16 rounded" />
+        </div>
+      </div>
+      <div className="divide-y divide-border/60">
+        {Array.from({ length: rows }).map((_, i) => (
+          <div key={i} className="p-3">
+            <div className="flex gap-4">
+              <Skeleton className="h-4 w-8 rounded" />
+              <Skeleton className="h-4 w-28 rounded" />
+              <Skeleton className="h-4 w-20 rounded" />
+              <Skeleton className="h-4 w-20 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

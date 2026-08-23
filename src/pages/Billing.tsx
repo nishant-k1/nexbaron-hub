@@ -1,7 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useDivision } from "@/theme/theme-provider";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { apiRequest, type Division } from "@/lib/api";
 import { Receipt, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
 
 declare global {
   interface Window { Razorpay: any }
@@ -31,6 +33,8 @@ interface Invoice {
   lineItems: InvoiceLineItem[];
   payments: Payment[];
   createdAt: string;
+  packageId?: string;
+  proposalCode?: string;
 }
 
 const inr = new Intl.NumberFormat("en-IN", {
@@ -60,12 +64,17 @@ function loadRazorpay(): Promise<typeof window.Razorpay> {
 
 export default function Billing() {
   const division = useDivision();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const targetInvoice = searchParams.get("invoice");
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [keyId, setKeyId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [paying, setPaying] = useState<string | null>(null);
   const [toast, setToast] = useState("");
+  const [highlightedInvoice, setHighlightedInvoice] = useState<string | null>(targetInvoice);
+  const invoiceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const load = useCallback(() => {
     if (!division) return;
@@ -77,6 +86,19 @@ export default function Billing() {
   }, [division]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (targetInvoice && invoices.some((inv) => inv.invoiceNumber === targetInvoice)) {
+      setTimeout(() => {
+        const ref = invoiceRefs.current.get(targetInvoice);
+        if (ref) {
+          ref.scrollIntoView({ behavior: "smooth", block: "center" });
+          ref.classList.add("ring-2", "ring-accent", "ring-accent/40");
+          setTimeout(() => ref.classList.remove("ring-2", "ring-accent", "ring-accent/40"), 3000);
+        }
+      }, 100);
+    }
+  }, [targetInvoice, invoices]);
 
   const pay = async (inv: Invoice) => {
     if (!division) return;
@@ -110,7 +132,6 @@ export default function Billing() {
         });
         rzp.open();
       } else {
-        // Dev mode: no live keys configured — settle directly.
         await apiRequest(`/${division}/billing/payments/verify`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -127,10 +148,12 @@ export default function Billing() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-heading">Billing</h1>
-        <p className="text-sm text-muted mt-0.5">Invoices and payments for your account.</p>
+    <div className="max-w-7xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-heading">Billing</h1>
+          <p className="text-sm text-muted mt-0.5">Invoices and payments for your account.</p>
+        </div>
       </div>
 
       {toast && (
@@ -138,11 +161,28 @@ export default function Billing() {
       )}
 
       {loading ? (
-        <div className="text-sm text-muted">Loading invoices…</div>
+        <div className="space-y-3 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <SkeletonCard key={i}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  <Skeleton className="h-9 w-9 rounded-xl" />
+                  <div>
+                    <Skeleton className="h-4 w-28 rounded" />
+                    <Skeleton className="h-3 w-20 rounded mt-1" />
+                  </div>
+                </div>
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-7 w-24 rounded mt-4" />
+              <Skeleton className="h-3 w-32 rounded mt-2" />
+            </SkeletonCard>
+          ))}
+        </div>
       ) : error ? (
-        <div className="rounded-xl border border-red-500/30 bg-neutral-surface p-6 text-sm text-red-500">{error}</div>
+        <div className="rounded-2xl border border-red-500/30 bg-neutral-surface p-6 text-sm text-red-500">{error}</div>
       ) : invoices.length === 0 ? (
-        <div className="rounded-xl bg-neutral-surface p-12 flex flex-col items-center text-center">
+        <div className="rounded-2xl bg-neutral-surface border border-border p-12 flex flex-col items-center text-center">
           <div className="w-14 h-14 rounded-full bg-neutral-bg text-muted flex items-center justify-center mb-4">
             <Receipt className="h-6 w-6" />
           </div>
@@ -150,47 +190,44 @@ export default function Billing() {
           <p className="text-sm text-muted max-w-[320px]">Invoices are created once you accept a proposal.</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {invoices.map((inv) => {
             const meta = STATUS_META[inv.status];
             const Icon = meta.icon;
             return (
-              <div key={inv._id} className="rounded-2xl bg-neutral-surface border border-border p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-semibold text-heading">{inv.invoiceNumber}</p>
-                    <p className="text-xs text-muted">
-                      {new Date(inv.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                      {inv.dueDate ? ` · Due ${new Date(inv.dueDate).toLocaleDateString("en-IN")}` : ""}
-                    </p>
+              <div
+                ref={(el) => { if (el) invoiceRefs.current.set(inv.invoiceNumber, el); }}
+                key={inv._id}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/${division}/billing/${encodeURIComponent(inv.invoiceNumber)}`)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(`/${division}/billing/${encodeURIComponent(inv.invoiceNumber)}`); }}
+                className={`group rounded-2xl bg-neutral-surface border border-border p-5 hover:border-accent/30 transition-all duration-300 cursor-pointer ${highlightedInvoice === inv.invoiceNumber ? "ring-2 ring-accent/40" : ""}`}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
+                      <Receipt className="h-4.5 w-4.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-heading truncate font-mono text-sm">{inv.invoiceNumber}</p>
+                      <p className="text-xs text-muted">
+                        {new Date(inv.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        {inv.dueDate ? ` · Due ${new Date(inv.dueDate).toLocaleDateString("en-IN")}` : ""}
+                        {inv.proposalCode ? ` · ${inv.proposalCode}` : ""}
+                      </p>
+                    </div>
                   </div>
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.cls}`}>
-                    <Icon className="h-3.5 w-3.5" /> {meta.label}
-                  </span>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="hidden sm:block text-base font-bold text-heading">{inr.format(inv.amount)}</span>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.cls}`}>
+                      <Icon className="h-3.5 w-3.5" /> {meta.label}
+                    </span>
+                  </div>
                 </div>
-
-                {inv.lineItems.length > 0 && (
-                  <ul className="mt-3 divide-y divide-border/60">
-                    {inv.lineItems.map((li, i) => (
-                      <li key={i} className="flex justify-between text-sm py-1.5">
-                        <span className="text-body">{li.label}</span>
-                        <span className="text-heading font-medium">{inr.format(li.amount)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                <div className="mt-3 flex items-center justify-between">
-                  <span className="text-lg font-bold text-heading">{inr.format(inv.amount)}</span>
-                  {inv.status === "PENDING" && (
-                    <button
-                      onClick={() => pay(inv)}
-                      disabled={paying === inv.invoiceNumber}
-                      className="cursor-pointer px-4 py-2.5 bg-accent text-accent-fg rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-opacity"
-                    >
-                      {paying === inv.invoiceNumber ? "Processing…" : "Pay now"}
-                    </button>
-                  )}
+                <div className="mt-2 flex items-center justify-between sm:hidden">
+                  <span className="text-base font-bold text-heading">{inr.format(inv.amount)}</span>
+                  <span className="text-xs text-muted group-hover:text-accent">→</span>
                 </div>
               </div>
             );

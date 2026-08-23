@@ -8,9 +8,12 @@ import Settings from "@/pages/Settings"
 import Login from "@/pages/Login"
 import HubDashboard from "@/pages/HubDashboard"
 import Messages from "@/pages/Messages"
-import Packages from "@/pages/Packages"
+import Plans from "@/pages/Plans"
 import Proposals from "@/pages/Proposals"
 import Billing from "@/pages/Billing"
+import BillingDetail from "@/pages/BillingDetail"
+import Orders from "@/pages/Orders"
+import OrderDetail from "@/pages/OrderDetail"
 
 function divisionFromPath(pathname: string): Division | null {
   if (pathname.startsWith("/print")) return "print"
@@ -22,6 +25,15 @@ function DivisionWrapper({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const division = divisionFromPath(location.pathname)
   return <DivisionProvider division={division}>{children}</DivisionProvider>
+}
+
+function DigitalLanding() {
+  const location = useLocation()
+  const params = new URLSearchParams(location.search)
+  const qs = new URLSearchParams()
+  if (params.get("plan")) qs.set("plan", params.get("plan")!)
+  if (params.get("billing")) qs.set("billing", params.get("billing")!)
+  return <Navigate to={`/digital/plans${qs.toString() ? `?${qs}` : ""}`} replace />
 }
 
 function HubRoutes() {
@@ -40,14 +52,18 @@ function HubRoutes() {
     <Routes>
       <Route path="/:division/login" element={<ErrorBoundary name="Login"><Login /></ErrorBoundary>} />
       <Route path="/:division" element={user ? <AppLayout /> : <Navigate to="login" replace />}>
-        <Route index element={<ErrorBoundary name="HubDashboard"><HubDashboard /></ErrorBoundary>} />
+        <Route index element={division === "digital" ? <DigitalLanding /> : <ErrorBoundary name="HubDashboard"><HubDashboard /></ErrorBoundary>} />
         <Route path="settings" element={<ErrorBoundary name="Settings"><Settings /></ErrorBoundary>} />
         <Route path="messages" element={<ErrorBoundary name="Messages"><Messages /></ErrorBoundary>} />
         {division === "digital" && (
           <>
-            <Route path="packages" element={<ErrorBoundary name="Packages"><Packages /></ErrorBoundary>} />
+            <Route path="plans" element={<ErrorBoundary name="Plans"><Plans /></ErrorBoundary>} />
+            <Route path="packages" element={<Navigate to="plans" replace />} />
             <Route path="proposals" element={<ErrorBoundary name="Proposals"><Proposals /></ErrorBoundary>} />
             <Route path="billing" element={<ErrorBoundary name="Billing"><Billing /></ErrorBoundary>} />
+            <Route path="billing/:invoiceNumber" element={<ErrorBoundary name="BillingDetail"><BillingDetail /></ErrorBoundary>} />
+            <Route path="orders" element={<ErrorBoundary name="Orders"><Orders /></ErrorBoundary>} />
+            <Route path="orders/:id" element={<ErrorBoundary name="OrderDetail"><OrderDetail /></ErrorBoundary>} />
           </>
         )}
       </Route>

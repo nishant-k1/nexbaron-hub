@@ -102,8 +102,8 @@ export default function BillingDetail() {
     try {
       const token = getToken(division);
       if (!token) throw new Error("Not authenticated");
-      const url = `${getApiUrl(division)}/${division}/billing/invoices/${encodeURIComponent(invoice.invoiceNumber)}/receipt${paymentId ? `/${encodeURIComponent(paymentId)}` : ""}`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const url = `${getApiUrl(division)}/${division}/billing/invoices/${encodeURIComponent(invoice.invoiceNumber)}/receipt${paymentId ? `/${encodeURIComponent(paymentId)}` : ""}?format=pdf`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: "application/pdf" } });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || `Failed to download receipt (${res.status})`);
@@ -112,7 +112,7 @@ export default function BillingDetail() {
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      a.download = `receipt-${invoice.invoiceNumber}${paymentId ? `-${paymentId.slice(-6)}` : ""}.html`;
+      a.download = `receipt-${invoice.invoiceNumber}${paymentId ? `-${paymentId.slice(-6)}` : ""}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();

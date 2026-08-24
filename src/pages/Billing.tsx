@@ -160,8 +160,8 @@ export default function Billing() {
     try {
       const token = getToken(division);
       if (!token) throw new Error("Not authenticated");
-      const url = `${getApiUrl(division)}/${division}/billing/invoices/${encodeURIComponent(inv.invoiceNumber)}/receipt`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      const url = `${getApiUrl(division)}/${division}/billing/invoices/${encodeURIComponent(inv.invoiceNumber)}/receipt?format=pdf`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: "application/pdf" } });
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || `Failed to download receipt (${res.status})`);
@@ -170,7 +170,7 @@ export default function Billing() {
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      a.download = `receipt-${inv.invoiceNumber}.html`;
+      a.download = `receipt-${inv.invoiceNumber}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();

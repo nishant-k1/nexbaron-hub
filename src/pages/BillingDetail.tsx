@@ -272,22 +272,7 @@ export default function BillingDetail() {
         );
       })()}
 
-      {/* Payment history — separate minimal card */}
-      {summary && summary.successfulPayments.length > 0 && (
-        <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
-          <div className="px-8 py-4 border-b border-border">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Payment history</h3>
-          </div>
-          <div className="divide-y divide-border/60">
-            {summary.successfulPayments.sort((a,b)=> new Date(b.at).getTime()-new Date(a.at).getTime()).map((p, i) => (
-              <div key={i} className="flex items-center justify-between px-8 py-4">
-                <span className="text-sm text-heading">{new Date(p.at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
-                <span className="text-sm font-medium text-heading">{inr.format(p.amount)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
 
       {invoice.status === "PENDING" && amountDue > 0 && (
         <div className="sm:hidden">

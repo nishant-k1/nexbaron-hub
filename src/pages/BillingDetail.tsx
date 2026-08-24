@@ -220,22 +220,6 @@ export default function BillingDetail() {
         )}
       </div>
 
-      {/* Hero — single source for totals, no card-in-card */}
-      <div className="rounded-2xl bg-neutral-surface border border-border p-8">
-        <p className="text-xs uppercase tracking-widest text-muted">Total amount</p>
-        <p className="text-4xl font-bold tracking-tight text-heading mt-2">{inr.format(invoice.amount)}</p>
-        <p className="text-sm text-muted mt-2">
-          {totalPaid > 0 ? <><span className="text-emerald-600 font-medium">{inr.format(totalPaid)} paid</span> · {amountDue > 0 ? `${inr.format(amountDue)} due` : "Fully paid"}</> : <>Due on {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-IN") : "request"} <span className="text-muted">· {invoice.paymentSchedule === "FIFTY_FIFTY" ? "50/50" : "Full upfront"}</span></>}
-        </p>
-        <div className="mt-6 h-1 bg-neutral-bg rounded-full overflow-hidden">
-          <div className="h-full bg-heading rounded-full transition-all duration-700" style={{ width: `${paidPercent}%` }} />
-        </div>
-        <div className="flex justify-between mt-2">
-          <span className="text-xs text-muted">{paidPercent}% paid</span>
-          <span className="text-xs text-muted">{inr.format(amountDue)} due</span>
-        </div>
-      </div>
-
       {/* One-time — separate minimal card, lean */}
       {hasOneTime && summary && (
         <div className="rounded-2xl bg-neutral-surface border border-border p-8">

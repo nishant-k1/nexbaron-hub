@@ -237,29 +237,22 @@ export default function BillingDetail() {
         </div>
       )}
 
-      {/* Recurring — history of paid only, no due */}
+      {/* Recurring — history of paid only */}
       {hasRecurring && summary && (() => {
         const paidInstallments = installments.filter(i => i.status === "paid");
         return (
         <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
           <div className="p-8">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Recurring — Paid history</h3>
-              <p className="text-xs text-muted">{inr.format(summary.recurringPaid)} paid</p>
-            </div>
-            <div className="flex items-baseline justify-between mt-4">
-              <p className="text-xl font-semibold text-heading">{inr.format(summary.recurringPaid)}<span className="text-sm font-normal text-muted"> paid</span></p>
-              <p className="text-xs text-muted">{paidInstallments.length} of {installments.length || planMonths} installments · {inr.format(summary.recurringTotal)}/mo</p>
-            </div>
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Recurring — Paid history</h3>
+            <p className="text-xl font-semibold text-heading mt-4">{inr.format(summary.recurringPaid)}<span className="text-sm font-normal text-muted"> paid</span></p>
+            <p className="text-xs text-muted mt-1">{inr.format(summary.recurringTotal)}/mo</p>
           </div>
           {paidInstallments.length > 0 ? (
             <div className="border-t border-border divide-y divide-border/60">
               {paidInstallments.map((inst) => (
                 <div key={inst.number} className="flex items-center justify-between px-8 py-3.5">
-                  <span className="text-sm text-heading">Month {inst.number} — {inst.dueDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}{inst.paidAt ? ` · Paid ${new Date(inst.paidAt).toLocaleDateString("en-IN")}` : ""}</span>
-                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600">
-                    {inr.format(inst.amount)} Paid
-                  </span>
+                  <span className="text-sm text-heading">{inst.paidAt ? new Date(inst.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : inst.dueDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                  <span className="text-sm font-medium text-heading">{inr.format(inst.amount)}</span>
                 </div>
               ))}
             </div>

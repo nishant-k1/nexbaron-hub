@@ -10,8 +10,8 @@ declare global { interface Window { Razorpay: any } }
 interface InvoiceLineItem { label: string; amount: number; type: "ONE_TIME" | "RECURRING"; }
 interface Payment { paymentId: string; razorpayPaymentId?: string; amount: number; status: "INITIATED" | "SUCCESS" | "FAILED" | "REFUNDED"; at: string; }
 interface Invoice { _id: string; invoiceNumber: string; status: "DRAFT" | "PENDING" | "PAID" | "FAILED" | "CANCELLED"; amount: number; currency: string; dueDate?: string; lineItems: InvoiceLineItem[]; payments: Payment[]; createdAt: string; packageId?: string; paymentSchedule?: "FULL_UPFRONT" | "FIFTY_FIFTY"; }
-interface Installment { number: number; dueDate: Date; amount: number; status: "paid" | "due" | "overdue"; paidAt?: string; }
-interface PlanCatalog { id: string; name: string; minimumMonths?: number; pricing?: { setup: number; monthly: number; annual?: number; minimumMonths?: number }; }
+interface Installment { number: number; dueDate: string; amount: number; status: "paid" | "due" | "overdue"; paidAt?: string; }
+interface BillingSummary { oneTimeTotal: number; oneTimePaid: number; oneTimeDue: number; recurringTotal: number; recurringPaid: number; recurringDue: number; totalPaid: number; amountDue: number; paidPercent: number; oneTimeItems: InvoiceLineItem[]; recurringItems: InvoiceLineItem[]; }
 
 const inr = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
@@ -34,49 +34,7 @@ function loadRazorpay(): Promise<typeof window.Razorpay> {
   });
 }
 
-function computeInstallments(inv: Invoice, planMonths: number): Installment[] {
-  const recurringItems = inv.lineItems.filter((li) => li.type === "RECURRING");
-  if (recurringItems.length === 0) return [];
-  const recurringTotal = recurringItems.reduce((sum, li) => sum + li.amount, 0);
-  const successfulPayments = inv.payments.filter((p) => p.status === "SUCCESS");
-  const totalPaid = successfulPayments.reduce((sum, p) => sum + p.amount, 0);
-  const oneTimeTotal = inv.lineItems.filter((li) => li.type === "ONE_TIME").reduce((sum, li) => sum + li.amount, 0);
-  const recurringPaid = Math.max(0, totalPaid - oneTimeTotal);
-  const isAnnual = recurringItems.some((li) => li.label.toLowerCase().includes("annual") || li.label.toLowerCase().includes("year"));
-  const cycleDays = isAnnual ? 365 : 28;
-  const installmentAmount = recurringTotal;
-  const numInstallments = isAnnual ? 1 : planMonths;
-  const installments: Installment[] = [];
-  const invoiceDate = new Date(inv.createdAt);
-  for (let i = 0; i < numInstallments; i++) {
-    const dueDate = new Date(invoiceDate);
-    dueDate.setDate(dueDate.getDate() + (i + 1) * cycleDays);
-    const installmentPaidAmount = Math.min(recurringPaid, installmentAmount * (i + 1)) - Math.min(recurringPaid, installmentAmount * i);
-    const isPaid = installmentPaidAmount >= installmentAmount * 0.9;
-    const isOverdue = !isPaid && dueDate < new Date();
-    let paidAt: string | undefined;
-    if (isPaid) {
-      const relevantPayment = successfulPayments.filter(p => new Date(p.at) <= dueDate).sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())[0];
-      if (relevantPayment) paidAt = relevantPayment.at;
-    }
-    installments.push({ number: i + 1, dueDate, amount: installmentAmount, status: isPaid ? "paid" : isOverdue ? "overdue" : "due", paidAt });
-  }
-  return installments;
-}
 
-function computeBillingSummary(inv: Invoice) {
-  const oneTimeItems = inv.lineItems.filter((li) => li.type === "ONE_TIME");
-  const recurringItems = inv.lineItems.filter((li) => li.type === "RECURRING");
-  const oneTimeTotal = oneTimeItems.reduce((sum, li) => sum + li.amount, 0);
-  const recurringTotal = recurringItems.reduce((sum, li) => sum + li.amount, 0);
-  const successfulPayments = inv.payments.filter((p) => p.status === "SUCCESS");
-  const totalPaid = successfulPayments.reduce((sum, p) => sum + p.amount, 0);
-  const oneTimePaid = Math.min(totalPaid, oneTimeTotal);
-  const oneTimeDue = Math.max(0, oneTimeTotal - oneTimePaid);
-  const recurringPaid = Math.max(0, totalPaid - oneTimeTotal);
-  const recurringDue = Math.max(0, recurringTotal - recurringPaid);
-  return { oneTimeTotal, oneTimePaid, oneTimeDue, recurringTotal, recurringPaid, recurringDue, successfulPayments, oneTimeItems, recurringItems, totalPaid };
-}
 
 export default function BillingDetail() {
   const division = useDivision();
@@ -84,7 +42,8 @@ export default function BillingDetail() {
   const { invoiceNumber } = useParams<{ invoiceNumber: string }>();
   const decodedInvoiceNumber = invoiceNumber ? decodeURIComponent(invoiceNumber) : "";
   const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [plan, setPlan] = useState<PlanCatalog | null>(null);
+  const [summary, setSummary] = useState<BillingSummary | null>(null);
+  const [installments, setInstallments] = useState<Installment[]>([]);
   const [keyId, setKeyId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -95,17 +54,13 @@ export default function BillingDetail() {
   const load = useCallback(() => {
     if (!division || !decodedInvoiceNumber) return;
     setLoading(true);
-    apiRequest<{ invoice: Invoice; razorpayKeyId?: string }>(`/${division}/billing/invoices/${decodedInvoiceNumber}`, {}, division as Division)
-      .then(async (d) => {
+    apiRequest<{ invoice: Invoice; razorpayKeyId?: string; summary: BillingSummary; installments: Installment[] }>(`/${division}/billing/invoices/${decodedInvoiceNumber}`, {}, division as Division)
+      .then((d) => {
         setInvoice(d.invoice);
+        setSummary(d.summary);
+        setInstallments(d.installments || []);
         setKeyId(d.razorpayKeyId ?? "");
         setError("");
-        if (d.invoice.packageId) {
-          try {
-            const planData = await apiRequest<{ plan: PlanCatalog }>(`/${division}/catalog/plans/${d.invoice.packageId}`, {}, division as Division);
-            setPlan(planData.plan);
-          } catch {}
-        }
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load invoice"))
       .finally(() => setLoading(false));
@@ -139,9 +94,6 @@ export default function BillingDetail() {
     } finally { setPaying(false); }
   };
 
-  const summary = invoice ? computeBillingSummary(invoice) : null;
-  const planMonths = plan?.minimumMonths ?? plan?.pricing?.minimumMonths ?? 12;
-  const installments = invoice ? computeInstallments(invoice, planMonths) : [];
   const hasOneTime = !!summary && summary.oneTimeTotal > 0;
   const hasRecurring = !!summary && summary.recurringTotal > 0;
 
@@ -191,8 +143,7 @@ export default function BillingDetail() {
   const meta = STATUS_META[invoice.status];
   const Icon = meta.icon;
   const totalPaid = summary?.totalPaid ?? 0;
-  const amountDue = Math.max(0, invoice.amount - totalPaid);
-  const paidPercent = invoice.amount > 0 ? Math.min(100, Math.round((totalPaid / invoice.amount) * 100)) : 0;
+  const amountDue = summary?.amountDue ?? Math.max(0, invoice.amount - totalPaid);
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">

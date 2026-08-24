@@ -1,5 +1,7 @@
 # AGENTS.md — nexbaron-hub
 
+> **Root contract:** See `nexbaron/AGENTS.md` §0 — **API is single source of truth (MANDATORY).** `nexbaron-hub` must never hardcode prices, statuses, plan names, breakdowns, installments, or any business logic. If you need a computed field (`summary`, `installments`, `paidPercent`), add it to `nexbaron-api` first (`src/models/*` → `src/features/*/services/*` → `src/features/*/controllers/*`) and consume the API response as-is. No `compute*()` fallbacks in `src/pages/*.tsx`.
+
 Customer-facing portal where users manage their Nexbaron account (orders, progress, chat, settings). Vite SPA. Consumes `/{division}/*` customer-authenticated routes through the `nexbaron-api` gateway (`/Users/nishantkumar/dev/nexbaron-api`).
 
 ## Commands

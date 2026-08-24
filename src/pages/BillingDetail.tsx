@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDivision } from "@/theme/theme-provider";
-import { apiRequest, type Division } from "@/lib/api";
-import { CheckCircle2, Clock, AlertTriangle, CreditCard, ArrowLeft, X, ArrowRight } from "lucide-react";
+import { apiRequest, type Division, getApiUrl, getToken } from "@/lib/api";
+import { CheckCircle2, Clock, AlertTriangle, CreditCard, ArrowLeft, X, ArrowRight, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 declare global { interface Window { Razorpay: any } }
@@ -10,7 +10,7 @@ declare global { interface Window { Razorpay: any } }
 interface InvoiceLineItem { label: string; amount: number; type: "ONE_TIME" | "RECURRING"; }
 interface Payment { paymentId: string; razorpayPaymentId?: string; amount: number; status: "INITIATED" | "SUCCESS" | "FAILED" | "REFUNDED"; at: string; }
 interface Invoice { _id: string; invoiceNumber: string; status: "DRAFT" | "PENDING" | "PAID" | "FAILED" | "CANCELLED"; amount: number; currency: string; dueDate?: string; lineItems: InvoiceLineItem[]; payments: Payment[]; createdAt: string; packageId?: string; paymentSchedule?: "FULL_UPFRONT" | "FIFTY_FIFTY"; }
-interface Installment { number: number; dueDate: string; amount: number; status: "paid" | "due" | "overdue"; paidAt?: string; }
+interface Installment { number: number; dueDate: string; amount: number; status: "paid" | "due" | "overdue"; paidAt?: string; paymentId?: string; }
 interface BillingSummary { oneTimeTotal: number; oneTimePaid: number; oneTimeDue: number; recurringTotal: number; recurringPaid: number; recurringDue: number; totalPaid: number; amountDue: number; paidPercent: number; oneTimeItems: InvoiceLineItem[]; recurringItems: InvoiceLineItem[]; }
 
 const inr = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
@@ -50,6 +50,7 @@ export default function BillingDetail() {
   const [paying, setPaying] = useState(false);
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (!division || !decodedInvoiceNumber) return;
@@ -92,6 +93,36 @@ export default function BillingDetail() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Payment failed", { duration: 4000 });
     } finally { setPaying(false); }
+  };
+
+  const handleDownloadReceipt = async (paymentId?: string) => {
+    if (!division || !invoice) return;
+    const key = paymentId || "full";
+    setDownloading(key);
+    try {
+      const token = getToken(division);
+      if (!token) throw new Error("Not authenticated");
+      const url = `${getApiUrl(division)}/${division}/billing/invoices/${encodeURIComponent(invoice.invoiceNumber)}/receipt${paymentId ? `/${encodeURIComponent(paymentId)}` : ""}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Failed to download receipt (${res.status})`);
+      }
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `receipt-${invoice.invoiceNumber}${paymentId ? `-${paymentId.slice(-6)}` : ""}.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+      toast.success("Receipt downloaded");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to download receipt");
+    } finally {
+      setDownloading(null);
+    }
   };
 
   const hasOneTime = !!summary && summary.oneTimeTotal > 0;
@@ -164,11 +195,18 @@ export default function BillingDetail() {
             {invoice.dueDate ? ` · Due ${new Date(invoice.dueDate).toLocaleDateString("en-IN")}` : ""}
           </p>
         </div>
-        {invoice.status === "PENDING" && amountDue > 0 && (
-          <button onClick={() => setShowPaymentOptions(true)} disabled={paying} className="hidden sm:inline-flex cursor-pointer items-center gap-2 px-5 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-full hover:opacity-90 disabled:opacity-50">
-            <CreditCard className="h-4 w-4" /> Pay now
-          </button>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {totalPaid > 0 && (
+            <button onClick={() => handleDownloadReceipt()} disabled={downloading === "full"} className="hidden sm:inline-flex cursor-pointer items-center gap-1.5 px-4 py-2.5 border border-border bg-neutral-surface rounded-full text-sm font-medium hover:bg-neutral-bg disabled:opacity-50">
+              {downloading === "full" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Receipt
+            </button>
+          )}
+          {invoice.status === "PENDING" && amountDue > 0 && (
+            <button onClick={() => setShowPaymentOptions(true)} disabled={paying} className="hidden sm:inline-flex cursor-pointer items-center gap-2 px-5 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-full hover:opacity-90 disabled:opacity-50">
+              <CreditCard className="h-4 w-4" /> Pay now
+            </button>
+          )}
+        </div>
       </div>
 
       {/* One-time — separate minimal card, lean */}
@@ -176,9 +214,16 @@ export default function BillingDetail() {
         <div className="rounded-2xl bg-neutral-surface border border-border p-8">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">One-time — Setup</h3>
-            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${summary.oneTimeDue === 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
-              {summary.oneTimeDue === 0 ? "Fully paid" : `${inr.format(summary.oneTimeDue)} due`}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${summary.oneTimeDue === 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
+                {summary.oneTimeDue === 0 ? "Fully paid" : `${inr.format(summary.oneTimeDue)} due`}
+              </span>
+              {summary.oneTimePaid > 0 && (
+                <button onClick={() => handleDownloadReceipt()} disabled={downloading === "full"} className="p-1.5 rounded-full border border-border hover:bg-neutral-bg disabled:opacity-50">
+                  {downloading === "full" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5 text-muted" />}
+                </button>
+              )}
+            </div>
           </div>
           <p className="text-sm text-muted mt-3">{summary.oneTimeItems.map(li => li.label).join(", ") || "Setup fee"}</p>
           <div className="flex items-baseline justify-between mt-4">
@@ -203,7 +248,14 @@ export default function BillingDetail() {
               {paidInstallments.map((inst) => (
                 <div key={inst.number} className="flex items-center justify-between px-8 py-3.5">
                   <span className="text-sm text-heading">{inst.paidAt ? new Date(inst.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : inst.dueDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
-                  <span className="text-sm font-medium text-heading">{inr.format(inst.amount)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-heading">{inr.format(inst.amount)}</span>
+                    {inst.paymentId && (
+                      <button onClick={() => handleDownloadReceipt(inst.paymentId)} disabled={downloading === inst.paymentId} className="p-1.5 rounded-full border border-border hover:bg-neutral-bg disabled:opacity-50">
+                        {downloading === inst.paymentId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5 text-muted" />}
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

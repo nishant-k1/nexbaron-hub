@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useDivision } from "@/theme/theme-provider";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { apiRequest, type Division } from "@/lib/api";
-import { Receipt, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { apiRequest, type Division, getApiUrl, getToken } from "@/lib/api";
+import { Receipt, CheckCircle2, Clock, AlertTriangle, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
 
@@ -73,6 +73,7 @@ export default function Billing() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [paying, setPaying] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
   const [highlightedInvoice, setHighlightedInvoice] = useState<string | null>(targetInvoice);
   const invoiceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -144,6 +145,41 @@ export default function Billing() {
       toast.error(e instanceof Error ? e.message : "Payment failed", { duration: 4000 });
     } finally {
       setPaying(null);
+    }
+  };
+
+  const handleDownloadReceipt = async (inv: Invoice, e?: React.MouseEvent) => {
+    if (e) { e.stopPropagation(); e.preventDefault(); }
+    if (!division) return;
+    const hasPaid = inv.payments?.some(p => p.status === "SUCCESS");
+    if (!hasPaid && inv.status !== "PAID") {
+      toast.error("No paid amount to generate receipt");
+      return;
+    }
+    setDownloading(inv.invoiceNumber);
+    try {
+      const token = getToken(division);
+      if (!token) throw new Error("Not authenticated");
+      const url = `${getApiUrl(division)}/${division}/billing/invoices/${encodeURIComponent(inv.invoiceNumber)}/receipt`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Failed to download receipt (${res.status})`);
+      }
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `receipt-${inv.invoiceNumber}.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+      toast.success("Receipt downloaded");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to download receipt");
+    } finally {
+      setDownloading(null);
     }
   };
 
@@ -219,11 +255,34 @@ export default function Billing() {
                     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.cls}`}>
                       <Icon className="h-3.5 w-3.5" /> {meta.label}
                     </span>
+                    {(inv.status === "PAID" || inv.payments?.some(p => p.status === "SUCCESS")) && (
+                      <button
+                        onClick={(e) => handleDownloadReceipt(inv, e)}
+                        disabled={downloading === inv.invoiceNumber}
+                        className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full border border-border bg-neutral-surface hover:bg-neutral-bg text-xs font-medium disabled:opacity-50"
+                        title="Download receipt"
+                      >
+                        {downloading === inv.invoiceNumber ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                        Receipt
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between sm:hidden">
                   <span className="text-base font-bold text-heading">{inr.format(inv.amount)}</span>
-                  <span className="text-xs text-muted group-hover:text-accent">→</span>
+                  <div className="flex items-center gap-2">
+                    {(inv.status === "PAID" || inv.payments?.some(p => p.status === "SUCCESS")) && (
+                      <button
+                        onClick={(e) => handleDownloadReceipt(inv, e)}
+                        disabled={downloading === inv.invoiceNumber}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-border bg-neutral-surface text-xs font-medium disabled:opacity-50"
+                      >
+                        {downloading === inv.invoiceNumber ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                        Receipt
+                      </button>
+                    )}
+                    <span className="text-xs text-muted group-hover:text-accent">→</span>
+                  </div>
                 </div>
               </div>
             );

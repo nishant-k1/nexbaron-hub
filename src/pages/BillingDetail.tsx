@@ -236,24 +236,6 @@ export default function BillingDetail() {
         </div>
       </div>
 
-      {/* Breakdown — clean list, no duplicate total */}
-      <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
-        <div className="px-8 py-4 border-b border-border">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted">Breakdown</h2>
-        </div>
-        <div className="divide-y divide-border/60">
-          {invoice.lineItems.map((li, i) => (
-            <div key={i} className="flex items-center justify-between gap-4 px-8 py-4">
-              <div className="min-w-0">
-                <p className="text-sm text-heading">{li.label}</p>
-                <p className="text-xs text-muted">{li.type === "ONE_TIME" ? "One-time" : "Recurring"}</p>
-              </div>
-              <p className="text-sm font-medium text-heading">{inr.format(li.amount)}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* One-time — separate minimal card, lean */}
       {hasOneTime && summary && (
         <div className="rounded-2xl bg-neutral-surface border border-border p-8">

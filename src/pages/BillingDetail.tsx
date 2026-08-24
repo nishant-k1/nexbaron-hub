@@ -237,33 +237,40 @@ export default function BillingDetail() {
         </div>
       )}
 
-      {/* Recurring — separate minimal card, schedule only */}
-      {hasRecurring && summary && (
+      {/* Recurring — history of paid only, no due */}
+      {hasRecurring && summary && (() => {
+        const paidInstallments = installments.filter(i => i.status === "paid");
+        return (
         <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
           <div className="p-8">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Recurring</h3>
-              <p className="text-xs text-muted">{planMonths} months · 28-day cycle</p>
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Recurring — Paid history</h3>
+              <p className="text-xs text-muted">{inr.format(summary.recurringPaid)} paid</p>
             </div>
             <div className="flex items-baseline justify-between mt-4">
-              <p className="text-xl font-semibold text-heading">{inr.format(summary.recurringTotal)}<span className="text-sm font-normal text-muted">/mo</span></p>
-              <p className="text-xs text-muted">{installments.filter(i=>i.status==="paid").length}/{installments.length || planMonths} paid · {summary.recurringDue > 0 ? `${inr.format(summary.recurringDue)} left` : "All paid"}</p>
+              <p className="text-xl font-semibold text-heading">{inr.format(summary.recurringPaid)}<span className="text-sm font-normal text-muted"> paid</span></p>
+              <p className="text-xs text-muted">{paidInstallments.length} of {installments.length || planMonths} installments · {inr.format(summary.recurringTotal)}/mo</p>
             </div>
           </div>
-          {installments.length > 0 && (
+          {paidInstallments.length > 0 ? (
             <div className="border-t border-border divide-y divide-border/60">
-              {installments.map((inst) => (
+              {paidInstallments.map((inst) => (
                 <div key={inst.number} className="flex items-center justify-between px-8 py-3.5">
-                  <span className="text-sm text-heading">Month {inst.number} — {inst.dueDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${inst.status === "paid" ? "bg-emerald-500/10 text-emerald-600" : inst.status === "overdue" ? "bg-red-500/10 text-red-600" : "bg-neutral-bg text-muted"}`}>
-                    {inst.status === "paid" ? "Paid" : inst.status === "overdue" ? "Overdue" : "Due"}
+                  <span className="text-sm text-heading">Month {inst.number} — {inst.dueDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}{inst.paidAt ? ` · Paid ${new Date(inst.paidAt).toLocaleDateString("en-IN")}` : ""}</span>
+                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600">
+                    {inr.format(inst.amount)} Paid
                   </span>
                 </div>
               ))}
             </div>
+          ) : (
+            <div className="border-t border-border px-8 py-6">
+              <p className="text-sm text-muted">No recurring payments yet</p>
+            </div>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* Payment history — separate minimal card */}
       {summary && summary.successfulPayments.length > 0 && (

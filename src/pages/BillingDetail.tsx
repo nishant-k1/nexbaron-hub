@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDivision } from "@/theme/theme-provider";
 import { apiRequest, type Division } from "@/lib/api";
-import { Receipt, CheckCircle2, Clock, AlertTriangle, CreditCard, ArrowLeft, Calendar, X, ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
+import { Receipt, CheckCircle2, Clock, AlertTriangle, CreditCard, ArrowLeft, Calendar, X, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 declare global {
@@ -114,119 +114,7 @@ function computeBillingSummary(inv: Invoice) {
   const oneTimeDue = Math.max(0, oneTimeTotal - oneTimePaid);
   const recurringPaid = Math.max(0, totalPaid - oneTimeTotal);
   const recurringDue = Math.max(0, recurringTotal - recurringPaid);
-  return { oneTimeTotal, oneTimePaid, oneTimeDue, recurringTotal, recurringPaid, recurringDue, successfulPayments, oneTimeItems, recurringItems };
-}
-
-function InstallmentsListView({ installments, inr }: { installments: Installment[]; inr: Intl.NumberFormat }) {
-  return (
-    <div className="space-y-3">
-      {installments.map((inst, i) => (
-        <div key={i} className="rounded-xl bg-neutral-surface border border-border p-4 hover:border-accent/30 transition-colors">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-neutral-bg flex items-center justify-center text-sm font-medium text-heading">#{inst.number}</span>
-              <div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-3.5 w-3.5 text-muted" />
-                  <span className="text-sm text-heading">{inst.dueDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-lg font-extrabold text-heading text-right min-w-[80px]">{inr.format(inst.amount)}</span>
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${inst.status === "paid" ? "bg-emerald-500/15 text-emerald-600" : inst.status === "overdue" ? "bg-red-500/15 text-red-600" : "bg-amber-500/15 text-amber-600"}`}>
-                {inst.status === "paid" && <CheckCircle2 className="h-3.5 w-3.5" />}
-                {inst.status === "overdue" && <AlertTriangle className="h-3.5 w-3.5" />}
-                {inst.status === "due" && <Clock className="h-3.5 w-3.5" />}
-                {inst.status === "paid" ? "Paid" : inst.status === "overdue" ? "Overdue" : "Due"}
-              </span>
-              {inst.status === "paid" && inst.paidAt && <span className="text-xs text-emerald-600 ml-2">Paid {new Date(inst.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function PaymentHistoryView({ payments, inr }: { payments: Payment[]; inr: Intl.NumberFormat }) {
-  return (
-    <div className="mt-4 pt-4 border-t border-border/60">
-      <p className="text-xs font-semibold text-muted mb-2">Payment History</p>
-      <div className="space-y-1">
-        {payments.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).map((p, i) => (
-          <div key={i} className="flex items-center justify-between text-sm px-3 py-2 rounded-lg bg-neutral-bg">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-              <span className="text-body">{new Date(p.at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
-            </div>
-            <span className="text-heading font-medium">{inr.format(p.amount)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function OneTimePaymentSection({ summary, inr, hasOneTime }: { summary: ReturnType<typeof computeBillingSummary>; inr: Intl.NumberFormat; hasOneTime: boolean }) {
-  if (!hasOneTime) return null;
-  let oneTimeContent: React.ReactNode;
-  if (summary.oneTimeDue === 0) {
-    oneTimeContent = (
-      <div className="md:col-span-2 relative p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center"><CheckCircle2 className="h-4 w-4 text-emerald-600" /></div>
-          <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Fully Paid</span>
-        </div>
-        <p className="text-3xl font-extrabold text-heading mb-1">{inr.format(summary.oneTimeTotal)}</p>
-        <p className="text-xs text-muted">of {inr.format(summary.oneTimeTotal)}</p>
-        <div className="mt-3 h-2 bg-emerald-500/10 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: '100%' }} /></div>
-        <div className="absolute top-2 right-2 text-xs text-emerald-500 font-medium">100%</div>
-      </div>
-    );
-  } else {
-    oneTimeContent = (
-      <>
-        <div className="relative p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-          <div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center"><ArrowUp className="h-4 w-4 text-emerald-600" /></div><span className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Paid</span></div>
-          <p className="text-3xl font-extrabold text-heading mb-1">{inr.format(summary.oneTimePaid)}</p>
-          <p className="text-xs text-muted">of {inr.format(summary.oneTimeTotal)}</p>
-          {summary.oneTimeTotal > 0 && <div className="mt-3 h-2 bg-emerald-500/10 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${(summary.oneTimePaid / summary.oneTimeTotal) * 100}%` }} /></div>}
-          <div className="absolute top-2 right-2 text-xs text-emerald-500 font-medium">{summary.oneTimeTotal > 0 ? `${Math.round((summary.oneTimePaid / summary.oneTimeTotal) * 100)}%` : '0%'}</div>
-        </div>
-        <div className="relative p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
-          <div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center"><ArrowDown className="h-4 w-4 text-amber-600" /></div><span className="text-xs font-semibold text-amber-600 uppercase tracking-wide">Due</span></div>
-          <p className="text-3xl font-extrabold text-heading mb-1">{inr.format(summary.oneTimeDue)}</p>
-          <p className="text-xs text-muted">remaining</p>
-          {summary.oneTimeTotal > 0 && <div className="mt-3 h-2 bg-amber-500/10 rounded-full overflow-hidden"><div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${(summary.oneTimeDue / summary.oneTimeTotal) * 100}%` }} /></div>}
-          <div className="absolute top-2 right-2 text-xs text-amber-500 font-medium">{summary.oneTimeTotal > 0 ? `${Math.round((summary.oneTimeDue / summary.oneTimeTotal) * 100)}%` : '0%'}</div>
-        </div>
-      </>
-    );
-  }
-  return (
-    <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/20 p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-emerald-500/10"><CreditCard className="h-5 w-5 text-emerald-600" /></div><div><h3 className="font-semibold text-heading">One-time Payment</h3><p className="text-xs text-muted">Setup fee</p></div></div>
-        <div className="text-right"><p className="text-2xl font-extrabold text-heading">{inr.format(summary.oneTimeTotal)}</p><p className="text-xs text-muted">Total</p></div>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">{oneTimeContent}</div>
-    </div>
-  );
-}
-
-function RecurringPaymentSection({ summary, installments, planMonths, inr, hasRecurring }: { summary: ReturnType<typeof computeBillingSummary>; installments: Installment[]; planMonths: number; inr: Intl.NumberFormat; hasRecurring: boolean }) {
-  if (!hasRecurring) return null;
-  return (
-    <div className="rounded-2xl bg-blue-500/5 border border-blue-500/20 p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3"><div className="p-2 rounded-lg bg-blue-500/10"><Calendar className="h-5 w-5 text-blue-600" /></div><div><h3 className="font-semibold text-heading">Recurring Payment</h3><p className="text-xs text-muted">{planMonths}-month cycle · 28-day billing</p></div></div>
-        <div className="flex items-center gap-4 text-right"><div><p className="text-2xl font-extrabold text-heading">{inr.format(summary.recurringTotal)}</p><p className="text-xs text-muted">/ month</p></div>{installments.length > 0 && <div className="text-xs font-semibold text-blue-600 uppercase tracking-wide bg-blue-500/10 px-3 py-1 rounded-full">{installments.filter(i => i.status === "paid").length}/{installments.length} paid</div>}</div>
-      </div>
-      <InstallmentsListView installments={installments} inr={inr} />
-      {summary.successfulPayments.length > 0 && <PaymentHistoryView payments={summary.successfulPayments} inr={inr} />}
-    </div>
-  );
+  return { oneTimeTotal, oneTimePaid, oneTimeDue, recurringTotal, recurringPaid, recurringDue, successfulPayments, oneTimeItems, recurringItems, totalPaid };
 }
 
 export default function BillingDetail() {
@@ -307,32 +195,29 @@ export default function BillingDetail() {
 
   if (!decodedInvoiceNumber) {
     return (
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate(`/${division}/orders`)} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90">
-            <ArrowLeft className="h-4 w-4" /> Back to orders
-          </button>
-        </div>
-        <div className="rounded-xl border border-red-500/30 bg-neutral-surface p-6 text-sm text-red-500">No invoice specified</div>
+      <div className="max-w-3xl mx-auto space-y-6">
+        <button onClick={() => navigate(`/${division}/orders`)} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90">
+          <ArrowLeft className="h-4 w-4" /> Back to orders
+        </button>
+        <div className="rounded-2xl border border-red-500/30 bg-neutral-surface p-6 text-sm text-red-500">No invoice specified</div>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto space-y-6 animate-pulse">
+      <div className="max-w-3xl mx-auto space-y-6 animate-pulse">
         <div className="h-6 w-48 bg-neutral-bg rounded" />
-        <div className="rounded-2xl bg-neutral-surface border border-border p-6 h-32" />
-        <div className="rounded-2xl bg-neutral-surface border border-border p-6 h-48" />
-        <div className="rounded-2xl bg-neutral-surface border border-border p-6 h-48" />
+        <div className="rounded-2xl bg-neutral-surface border border-border p-6 h-28" />
+        <div className="rounded-2xl bg-neutral-surface border border-border p-6 h-64" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="rounded-xl border border-red-500/30 bg-neutral-surface p-6 text-sm text-red-500">{error}</div>
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="rounded-2xl border border-red-500/30 bg-neutral-surface p-6 text-sm text-red-500">{error}</div>
         <button onClick={() => navigate(`/${division}/billing`)} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90">
           <ArrowLeft className="h-4 w-4" /> Back to billing
         </button>
@@ -342,13 +227,13 @@ export default function BillingDetail() {
 
   if (!invoice) {
     return (
-      <div className="max-w-7xl mx-auto">
-        <div className="rounded-xl bg-neutral-surface p-12 flex flex-col items-center text-center">
-          <div className="w-14 h-14 rounded-full bg-neutral-bg text-muted flex items-center justify-center mb-4">
+      <div className="max-w-3xl mx-auto">
+        <div className="rounded-2xl bg-neutral-surface border border-border p-12 flex flex-col items-center text-center">
+          <div className="w-14 h-14 rounded-2xl bg-neutral-bg text-muted flex items-center justify-center mb-4">
             <Receipt className="h-6 w-6" />
           </div>
-          <h3 className="font-semibold text-heading mb-1">Invoice not found</h3>
-          <p className="text-sm text-muted max-w-[320px]">The requested invoice could not be found.</p>
+          <h3 className="font-semibold text-heading">Invoice not found</h3>
+          <p className="text-sm text-muted mt-1 max-w-[320px]">The requested invoice could not be found.</p>
         </div>
       </div>
     );
@@ -356,57 +241,195 @@ export default function BillingDetail() {
 
   const meta = STATUS_META[invoice.status];
   const Icon = meta.icon;
+  const totalPaid = summary?.totalPaid ?? 0;
+  const amountDue = Math.max(0, invoice.amount - totalPaid);
+  const paidPercent = invoice.amount > 0 ? Math.min(100, Math.round((totalPaid / invoice.amount) * 100)) : 0;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <button onClick={() => navigate(`/${division}/billing`)} className="cursor-pointer p-2 rounded-lg hover:bg-neutral-bg transition-colors">
+    <div className="max-w-3xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-start gap-4">
+        <button onClick={() => navigate(`/${division}/billing`)} className="cursor-pointer mt-1 p-2 rounded-xl hover:bg-neutral-bg transition-colors shrink-0">
           <ArrowLeft className="h-5 w-5 text-muted" />
         </button>
-        <div>
-          <h1 className="text-2xl font-bold text-heading">{invoice.invoiceNumber}</h1>
-          <p className="text-sm text-muted mt-0.5">Invoice details — {new Date(invoice.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}{invoice.dueDate ? ` · Due ${new Date(invoice.dueDate).toLocaleDateString("en-IN")}` : ""}</p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-xl font-bold tracking-tight text-heading font-mono">{invoice.invoiceNumber}</h1>
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.cls}`}>
+              <Icon className="h-3.5 w-3.5" /> {meta.label}
+            </span>
+          </div>
+          <p className="text-sm text-muted mt-1">
+            {new Date(invoice.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+            {invoice.dueDate ? ` · Due ${new Date(invoice.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}` : ""}
+            {invoice.paymentSchedule ? ` · ${invoice.paymentSchedule === "FIFTY_FIFTY" ? "50/50" : "Full upfront"}` : ""}
+          </p>
         </div>
-        <div className="ml-auto">
-          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.cls}`}>
-            <Icon className="h-3.5 w-3.5" /> {meta.label}
-          </span>
+        {invoice.status === "PENDING" && amountDue > 0 && (
+          <button
+            onClick={() => setShowPaymentOptions(true)}
+            disabled={paying}
+            className="hidden sm:inline-flex cursor-pointer items-center gap-2 px-5 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90 disabled:opacity-50 shrink-0"
+          >
+            <CreditCard className="h-4 w-4" /> {paying ? "Processing…" : "Pay now"}
+          </button>
+        )}
+      </div>
+
+      {/* Invoice overview — single source for totals */}
+      <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-widest text-muted">Total amount</p>
+              <p className="text-3xl font-bold tracking-tight text-heading mt-1">{inr.format(invoice.amount)}</p>
+              <p className="text-sm text-muted mt-1">
+                {totalPaid > 0 ? (
+                  <span><span className="text-emerald-600 font-medium">{inr.format(totalPaid)} paid</span> · {amountDue > 0 ? `${inr.format(amountDue)} due` : "Fully paid"}</span>
+                ) : (
+                  <span>Due on {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString("en-IN") : "request"}</span>
+                )}
+              </p>
+            </div>
+            <div className="hidden sm:block text-right">
+              <p className="text-xs text-muted">Status</p>
+              <p className="text-sm font-medium text-heading mt-1">{meta.label}</p>
+            </div>
+          </div>
+          <div className="mt-5">
+            <div className="h-1.5 bg-neutral-bg rounded-full overflow-hidden">
+              <div className="h-full bg-accent rounded-full transition-all duration-700" style={{ width: `${paidPercent}%` }} />
+            </div>
+            <div className="flex justify-between mt-1.5">
+              <span className="text-xs text-muted">{paidPercent}% paid</span>
+              {invoice.paymentSchedule === "FIFTY_FIFTY" && <span className="text-xs text-muted">50/50 schedule</span>}
+            </div>
+          </div>
+        </div>
+        {/* Breakdown — grouped, no duplicate total */}
+        <div className="border-t border-border divide-y divide-border/60">
+          {summary && summary.oneTimeItems.length > 0 && (
+            <div className="px-6 py-3 flex items-center gap-2">
+              <Receipt className="h-3.5 w-3.5 text-muted" />
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted">One-time</span>
+              <span className="text-xs text-muted">· {summary.oneTimeItems.length} item{summary.oneTimeItems.length > 1 ? "s" : ""}</span>
+              <span className="ml-auto text-xs font-medium text-heading">{inr.format(summary.oneTimeTotal)}</span>
+            </div>
+          )}
+          {summary?.oneTimeItems.map((li, i) => (
+            <div key={`ot-${i}`} className="flex items-center justify-between gap-4 px-6 py-3 hover:bg-neutral-bg/40 transition-colors">
+              <p className="text-sm text-heading truncate">{li.label}</p>
+              <p className="text-sm font-medium text-heading shrink-0">{inr.format(li.amount)}</p>
+            </div>
+          ))}
+          {summary && summary.recurringItems.length > 0 && (
+            <div className="px-6 py-3 flex items-center gap-2 bg-neutral-bg/20 border-y border-border/60">
+              <Calendar className="h-3.5 w-3.5 text-muted" />
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted">Recurring</span>
+              <span className="text-xs text-muted">· {inr.format(summary.recurringTotal)}/mo</span>
+              <span className="ml-auto text-xs font-medium text-heading">{inr.format(summary.recurringTotal)}/mo</span>
+            </div>
+          )}
+          {summary?.recurringItems.map((li, i) => (
+            <div key={`rc-${i}`} className="flex items-center justify-between gap-4 px-6 py-3 hover:bg-neutral-bg/40 transition-colors">
+              <p className="text-sm text-heading truncate">{li.label}</p>
+              <p className="text-sm font-medium text-heading shrink-0">{inr.format(li.amount)}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {summary && (
-        <>
-          {hasOneTime && <OneTimePaymentSection summary={summary} inr={inr} hasOneTime={hasOneTime} />}
-          {hasRecurring && <RecurringPaymentSection summary={summary} installments={installments} planMonths={planMonths} inr={inr} hasRecurring={hasRecurring} />}
-          {!hasOneTime && !hasRecurring && (
-            <div className="rounded-2xl bg-neutral-surface border border-border p-6">
-              <p className="text-sm text-muted">No line items found for this invoice.</p>
-              <p className="text-lg font-bold text-heading mt-2">{inr.format(invoice.amount)}</p>
-            </div>
-          )}
-        </>
-      )}
-
-      {invoice.status === "PENDING" && summary && (
-        <div className="rounded-2xl bg-neutral-surface border border-border p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted">Amount due</p>
-              <p className="text-2xl font-extrabold text-heading">{inr.format(invoice.amount)}</p>
-              {summary.oneTimeDue > 0 && summary.recurringDue === 0 && <p className="text-xs text-muted">One-time due {inr.format(summary.oneTimeDue)}</p>}
-            </div>
-            <button
-              onClick={() => setShowPaymentOptions(true)}
-              disabled={paying}
-              className="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90 disabled:opacity-50"
-            >
-              <CreditCard className="h-4 w-4" /> {paying ? "Processing…" : "Pay now"}
-            </button>
+      {/* One-time — separate card, history only, no duplicate big total */}
+      {hasOneTime && summary && (
+        <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
+          <div className="px-6 py-4 flex items-center justify-between">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted flex items-center gap-2">
+              <Receipt className="h-3.5 w-3.5" /> One-time · Setup
+            </h3>
+            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${summary.oneTimeDue === 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
+              {summary.oneTimeDue === 0 ? "Fully paid" : `${inr.format(summary.oneTimeDue)} due`}
+            </span>
           </div>
-          {invoice.paymentSchedule === "FIFTY_FIFTY" && <p className="text-xs text-muted mt-2">This invoice supports 50% advance — you’ll be offered Full or 50% options.</p>}
+          <div className="px-6 pb-4 flex items-center justify-between text-sm">
+            <span className="text-muted">{summary.oneTimeItems.map(li => li.label).join(", ") || "Setup fee"}</span>
+            <span className="font-medium text-heading">{inr.format(summary.oneTimeTotal)}</span>
+          </div>
+          <div className="mx-6 h-px bg-border/60" />
+          <div className="px-6 py-3 flex items-center justify-between text-xs">
+            <span className="text-muted">{summary.oneTimeDue === 0 ? "Paid in full" : `${inr.format(summary.oneTimePaid)} of ${inr.format(summary.oneTimeTotal)} paid`}</span>
+            <span className="text-muted">{summary.oneTimeDue === 0 ? "100%" : `${Math.round((summary.oneTimePaid / summary.oneTimeTotal) * 100)}%`}</span>
+          </div>
         </div>
       )}
 
+      {/* Recurring — separate card, schedule only */}
+      {hasRecurring && summary && (
+        <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
+          <div className="px-6 py-4 flex items-center justify-between">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted flex items-center gap-2">
+              <Calendar className="h-3.5 w-3.5" /> Recurring
+            </h3>
+            <span className="text-xs font-medium text-heading">{inr.format(summary.recurringTotal)}/mo · {planMonths} mo</span>
+          </div>
+          <div className="px-6 pb-3 flex items-center justify-between">
+            <p className="text-sm text-muted">{installments.filter(i=>i.status==="paid").length} of {installments.length || planMonths} installments paid</p>
+            <p className="text-xs text-muted">{summary.recurringDue > 0 ? `${inr.format(summary.recurringDue)} remaining` : "All paid"}</p>
+          </div>
+          {installments.length > 0 && (
+            <div className="border-t border-border divide-y divide-border/60">
+              {installments.map((inst) => (
+                <div key={inst.number} className="flex items-center justify-between gap-4 px-6 py-3 hover:bg-neutral-bg/40 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono text-muted w-7">#{String(inst.number).padStart(2,"0")}</span>
+                    <span className="text-sm text-heading">{inst.dueDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                    {inst.status === "paid" && inst.paidAt && <span className="hidden sm:inline text-xs text-emerald-600">· Paid {new Date(inst.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>}
+                  </div>
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${inst.status === "paid" ? "bg-emerald-500/10 text-emerald-600" : inst.status === "overdue" ? "bg-red-500/10 text-red-600" : "bg-amber-500/10 text-amber-600"}`}>
+                    {inst.status === "paid" ? "Paid" : inst.status === "overdue" ? "Overdue" : "Due"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Payments history — separate card */}
+      {summary && summary.successfulPayments.length > 0 && (
+        <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
+          <div className="px-6 py-4 border-b border-border/60">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Payment history</h3>
+          </div>
+          <div className="divide-y divide-border/60">
+            {summary.successfulPayments.sort((a,b)=> new Date(b.at).getTime()-new Date(a.at).getTime()).map((p, i) => (
+              <div key={i} className="flex items-center justify-between px-6 py-3.5 hover:bg-neutral-bg/40 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full bg-emerald-500/10 flex items-center justify-center"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /></div>
+                  <span className="text-sm text-heading">{new Date(p.at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                  <span className="text-xs text-muted hidden sm:inline">{new Date(p.at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+                </div>
+                <span className="text-sm font-semibold text-heading">{inr.format(p.amount)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile pay CTA — minimal, not a card-in-card */}
+      {invoice.status === "PENDING" && amountDue > 0 && (
+        <div className="sm:hidden">
+          <button
+            onClick={() => setShowPaymentOptions(true)}
+            disabled={paying}
+            className="w-full cursor-pointer inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-accent text-accent-fg font-semibold text-sm rounded-2xl hover:opacity-90 disabled:opacity-50"
+          >
+            <CreditCard className="h-4 w-4" /> {paying ? "Processing…" : `Pay ${inr.format(amountDue)}`}
+          </button>
+          {invoice.paymentSchedule === "FIFTY_FIFTY" && <p className="text-xs text-muted text-center mt-2">50% advance available</p>}
+        </div>
+      )}
+
+      {/* Payment options modal — kept but minimal */}
       {(showPaymentOptions || paymentSuccess) && summary && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
@@ -416,21 +439,21 @@ export default function BillingDetail() {
             setPaymentSuccess(false);
           }}
         >
-          <div className="bg-neutral-surface rounded-2xl w-full max-w-md shadow-2xl p-6 transition-all duration-300" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-neutral-surface rounded-2xl w-full max-w-md border border-border shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
             {paymentSuccess ? (
               <>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center animate-in fade-in zoom-in duration-300">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
                     <CheckCircle2 className="h-5 w-5" />
                   </div>
-                  <button onClick={() => { setPaymentSuccess(false); setShowPaymentOptions(false); }} className="cursor-pointer w-8 h-8 rounded-lg hover:bg-neutral-bg text-muted hover:text-heading flex items-center justify-center">
+                  <button onClick={() => { setPaymentSuccess(false); setShowPaymentOptions(false); }} className="cursor-pointer w-8 h-8 rounded-xl hover:bg-neutral-bg text-muted hover:text-heading flex items-center justify-center">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-                <h3 className="text-lg font-bold text-heading animate-in fade-in slide-in-from-bottom-1 duration-300">Payment confirmed</h3>
-                <p className="text-sm text-muted mt-1 animate-in fade-in duration-300">Your payment for <span className="font-mono font-medium text-heading">{invoice.invoiceNumber}</span> was successful.</p>
-                <p className="text-sm text-body mt-3 animate-in fade-in duration-300 delay-100">Would you like to view your order details now?</p>
-                <div className="mt-6 flex justify-end gap-3 animate-in fade-in duration-300 delay-150">
+                <h3 className="text-lg font-bold text-heading">Payment confirmed</h3>
+                <p className="text-sm text-muted mt-1">Your payment for <span className="font-mono font-medium text-heading">{invoice.invoiceNumber}</span> was successful.</p>
+                <p className="text-sm text-body mt-3">View your order details now?</p>
+                <div className="mt-6 flex justify-end gap-3">
                   <button onClick={() => { setPaymentSuccess(false); setShowPaymentOptions(false); }} className="cursor-pointer px-5 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-neutral-bg">Stay here</button>
                   <button
                     onClick={async () => {
@@ -454,43 +477,43 @@ export default function BillingDetail() {
             ) : (
               <>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-heading">Choose Payment Amount</h3>
-                  <button onClick={() => setShowPaymentOptions(false)} disabled={paying} className="cursor-pointer text-muted hover:text-heading disabled:opacity-50"><X className="w-5 h-5" /></button>
+                  <h3 className="text-base font-semibold text-heading">Choose amount</h3>
+                  <button onClick={() => setShowPaymentOptions(false)} disabled={paying} className="cursor-pointer p-1.5 rounded-xl hover:bg-neutral-bg text-muted hover:text-heading disabled:opacity-50"><X className="w-5 h-5" /></button>
                 </div>
                 <p className="text-sm text-muted mb-4">
-                  This invoice is <span className="font-mono font-medium text-heading">{invoice.paymentSchedule}</span> from the API ({inr.format(invoice.amount)} total). {invoice.paymentSchedule === "FIFTY_FIFTY" ? "You can pay the 50% advance now or the full amount." : "Pay the full amount to complete your order."}
+                  {invoice.paymentSchedule === "FIFTY_FIFTY" ? "Pay 50% now or the full amount." : "Pay the full amount to complete."} Total {inr.format(invoice.amount)}.
                 </p>
-                <div className="rounded-xl bg-neutral-bg border border-border p-3 mb-4 text-xs">
-                  <div className="flex justify-between"><span className="text-muted">One-time paid</span><span className="font-medium text-heading">{inr.format(summary.oneTimePaid)} / {inr.format(summary.oneTimeTotal || invoice.amount)}</span></div>
-                  <div className="flex justify-between mt-1"><span className="text-muted">Due now</span><span className="font-bold text-heading">{inr.format(summary.oneTimeDue || invoice.amount)}</span></div>
+                <div className="rounded-xl bg-neutral-bg border border-border divide-y divide-border/60 mb-4 overflow-hidden">
+                  <div className="flex justify-between px-4 py-2.5"><span className="text-xs text-muted">Paid</span><span className="text-sm font-medium text-heading">{inr.format(summary.totalPaid)}</span></div>
+                  <div className="flex justify-between px-4 py-2.5"><span className="text-xs text-muted">Due</span><span className="text-sm font-bold text-heading">{inr.format(amountDue)}</span></div>
                 </div>
                 <div className="space-y-3">
                   {invoice.paymentSchedule === "FIFTY_FIFTY" && (
                     <button
                       onClick={() => pay(invoice, Math.round(invoice.amount / 2))}
                       disabled={paying}
-                      className="cursor-pointer w-full p-4 rounded-xl border border-border bg-neutral-bg hover:border-accent/30 transition-colors flex items-center justify-between disabled:opacity-50"
+                      className="cursor-pointer w-full p-4 rounded-2xl border border-border bg-neutral-bg hover:border-accent/30 transition-colors flex items-center justify-between disabled:opacity-50 text-left"
                     >
-                      <div className="text-left">
-                        <p className="font-semibold text-heading">Pay 50% Advance</p>
-                        <p className="text-xs text-muted">{inr.format(Math.round(invoice.amount / 2))} now, balance {inr.format(invoice.amount - Math.round(invoice.amount / 2))} later</p>
+                      <div>
+                        <p className="font-medium text-heading text-sm">Pay 50% advance</p>
+                        <p className="text-xs text-muted mt-0.5">{inr.format(Math.round(invoice.amount / 2))} now</p>
                       </div>
-                      <ArrowRight className="h-5 w-5 text-accent" />
+                      <ArrowRight className="h-5 w-5 text-muted" />
                     </button>
                   )}
                   <button
                     onClick={() => pay(invoice, invoice.amount)}
                     disabled={paying}
-                    className="cursor-pointer w-full p-4 rounded-xl bg-accent text-accent-fg hover:opacity-90 transition-opacity flex items-center justify-between disabled:opacity-50"
+                    className="cursor-pointer w-full p-4 rounded-2xl bg-accent text-accent-fg hover:opacity-90 transition-opacity flex items-center justify-between disabled:opacity-50 text-left"
                   >
-                    <div className="text-left">
-                      <p className="font-semibold">Pay Full Amount</p>
-                      <p className="text-xs text-accent-fg/70">{inr.format(invoice.amount)} upfront</p>
+                    <div>
+                      <p className="font-semibold text-sm">Pay full amount</p>
+                      <p className="text-xs text-accent-fg/70 mt-0.5">{inr.format(invoice.amount)}</p>
                     </div>
                     <ArrowRight className="h-5 w-5" />
                   </button>
                 </div>
-                <button onClick={() => setShowPaymentOptions(false)} disabled={paying} className="cursor-pointer w-full mt-4 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-neutral-bg transition-colors disabled:opacity-50">Cancel</button>
+                <button onClick={() => setShowPaymentOptions(false)} disabled={paying} className="cursor-pointer w-full mt-3 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-neutral-bg transition-colors disabled:opacity-50">Cancel</button>
               </>
             )}
           </div>

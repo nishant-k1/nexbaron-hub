@@ -195,18 +195,11 @@ export default function BillingDetail() {
             {invoice.dueDate ? ` · Due ${new Date(invoice.dueDate).toLocaleDateString("en-IN")}` : ""}
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {totalPaid > 0 && (
-            <button onClick={() => handleDownloadReceipt()} disabled={downloading === "full"} className="hidden sm:inline-flex cursor-pointer items-center gap-1.5 px-4 py-2.5 border border-border bg-neutral-surface rounded-full text-sm font-medium hover:bg-neutral-bg disabled:opacity-50">
-              {downloading === "full" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Receipt
-            </button>
-          )}
-          {invoice.status === "PENDING" && amountDue > 0 && (
-            <button onClick={() => setShowPaymentOptions(true)} disabled={paying} className="hidden sm:inline-flex cursor-pointer items-center gap-2 px-5 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-full hover:opacity-90 disabled:opacity-50">
-              <CreditCard className="h-4 w-4" /> Pay now
-            </button>
-          )}
-        </div>
+        {invoice.status === "PENDING" && amountDue > 0 && (
+          <button onClick={() => setShowPaymentOptions(true)} disabled={paying} className="hidden sm:inline-flex cursor-pointer items-center gap-2 px-5 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-full hover:opacity-90 disabled:opacity-50 shrink-0">
+            <CreditCard className="h-4 w-4" /> Pay now
+          </button>
+        )}
       </div>
 
       {/* One-time — separate minimal card, lean */}

@@ -3,6 +3,7 @@ import { useDivision } from "@/theme/theme-provider";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { apiRequest, type Division } from "@/lib/api";
 import { Receipt, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
 
 declare global {
@@ -72,7 +73,6 @@ export default function Billing() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [paying, setPaying] = useState<string | null>(null);
-  const [toast, setToast] = useState("");
   const [highlightedInvoice, setHighlightedInvoice] = useState<string | null>(targetInvoice);
   const invoiceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -123,7 +123,7 @@ export default function Billing() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ ...response, invoiceNumber: inv.invoiceNumber }),
             }, division as Division);
-            setToast("Payment successful — thank you!");
+            toast.success("Payment successful — thank you!", { duration: 4000 });
             load();
           },
           modal: {
@@ -137,11 +137,11 @@ export default function Billing() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ invoiceNumber: inv.invoiceNumber }),
         }, division as Division);
-        setToast("Payment marked as paid (dev mode).");
+        toast.success("Payment marked as paid (dev mode).", { duration: 3000 });
         load();
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Payment failed");
+      toast.error(e instanceof Error ? e.message : "Payment failed", { duration: 4000 });
     } finally {
       setPaying(null);
     }
@@ -155,10 +155,6 @@ export default function Billing() {
           <p className="text-sm text-muted mt-0.5">Invoices and payments for your account.</p>
         </div>
       </div>
-
-      {toast && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-600">{toast}</div>
-      )}
 
       {loading ? (
         <div className="space-y-3 animate-pulse">

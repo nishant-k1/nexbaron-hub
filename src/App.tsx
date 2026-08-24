@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
+import { Toaster } from "sonner"
 import { AuthProvider, useAuth } from "@/auth/auth-context"
 import { ThemeProvider, DivisionProvider, useDivision } from "@/theme/theme-provider"
 import type { Division } from "@/lib/api"
@@ -79,6 +80,20 @@ export default function App() {
         <AuthProvider>
           <DivisionWrapper>
             <HubRoutes />
+            <Toaster
+              position="top-right"
+              richColors
+              closeButton
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: "var(--surface-raised)",
+                  border: "1px solid var(--border)",
+                  color: "var(--heading)",
+                  borderRadius: "16px",
+                },
+              }}
+            />
           </DivisionWrapper>
         </AuthProvider>
       </ThemeProvider>

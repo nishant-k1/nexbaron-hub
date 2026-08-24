@@ -15,8 +15,11 @@ import {
   Package as PackageIcon,
   ArrowRight,
   Loader2,
+  X,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface CatalogService {
   id?: string;
@@ -90,7 +93,7 @@ export default function Plans() {
   const [activePlan, setActivePlan] = useState<string | null>(selectedPlanId);
   const [creating, setCreating] = useState(false);
   const [customNotice, setCustomNotice] = useState<string | null>(null);
-  const [proposalError, setProposalError] = useState("");
+  const [confirmPlan, setConfirmPlan] = useState<CatalogPlan | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -137,11 +140,9 @@ export default function Plans() {
 
   const handleChoose = async (plan: CatalogPlan) => {
     setActivePlan(plan.id);
-    setProposalError("");
     if (plan.custom || plan.id === "custom") {
       const msg =
         "I've some custom services requirement please create me a plan for that";
-      // Show the dialog immediately; fire the chat message in the background.
       setCustomNotice(msg);
       chatApiRequest(
         `/${division}/chat`,
@@ -154,30 +155,38 @@ export default function Plans() {
       ).catch(() => {});
       return;
     }
+    setConfirmPlan(plan);
+  };
+
+  const confirmRequest = async () => {
+    if (!confirmPlan) return;
     setCreating(true);
     try {
-      await apiRequest(
+      const res = await apiRequest<{ proposal: { proposalCode: string } }>(
         `/${division}/proposals/from-plan`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ planId: plan.id, billingCycle: billing }),
+          body: JSON.stringify({ planId: confirmPlan.id, billingCycle: billing }),
         },
         division as Division
       );
-      navigate(`/${division}/proposals`);
+      const code = res.proposal?.proposalCode;
+      setConfirmPlan(null);
+      if (code) navigate(`/${division}/proposals?proposal=${encodeURIComponent(code)}`);
+      else navigate(`/${division}/proposals`);
     } catch (e) {
-      setProposalError(e instanceof Error ? e.message : "Could not create your proposal. Please try again.");
+      toast.error(e instanceof Error ? e.message : "Could not create your proposal. Please try again.", { duration: 4000 });
+    } finally {
       setCreating(false);
     }
   };
 
   const handleRequestFromPackage = async (pkg: AccountPkg) => {
     setActivePlan(pkg.packageCode);
-    setProposalError("");
     setCreating(true);
     try {
-      await apiRequest(
+      const res = await apiRequest<{ proposal: { proposalCode: string } }>(
         `/${division}/proposals/from-package`,
         {
           method: "POST",
@@ -186,9 +195,11 @@ export default function Plans() {
         },
         division as Division
       );
-      navigate(`/${division}/proposals`);
+      const code = res.proposal?.proposalCode;
+      if (code) navigate(`/${division}/proposals?proposal=${encodeURIComponent(code)}`);
+      else navigate(`/${division}/proposals`);
     } catch (e) {
-      setProposalError(e instanceof Error ? e.message : "Could not create your proposal. Please try again.");
+      toast.error(e instanceof Error ? e.message : "Could not create your proposal. Please try again.", { duration: 4000 });
       setCreating(false);
     }
   };
@@ -204,10 +215,6 @@ export default function Plans() {
             : " All plans are available — pick the one that works for you."}
         </p>
       </div>
-
-      {proposalError && (
-        <div className="rounded-2xl border border-red-500/30 bg-neutral-surface p-4 text-sm text-red-500">{proposalError}</div>
-      )}
 
       {customNotice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -236,6 +243,58 @@ export default function Plans() {
                 className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90"
               >
                 Continue conversation <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmPlan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => !creating && setConfirmPlan(null)}>
+          <div className="bg-neutral-surface rounded-2xl w-full max-w-lg shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0">
+                  {(() => { const Icon = PLAN_ICONS[confirmPlan.icon] ?? PackageIcon; return <Icon className="h-5 w-5" /> })()}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-heading leading-tight">{confirmPlan.name}</h3>
+                  <p className="text-xs text-muted">{confirmPlan.tagline}</p>
+                </div>
+              </div>
+              <button onClick={() => setConfirmPlan(null)} disabled={creating} className="cursor-pointer w-8 h-8 rounded-lg hover:bg-neutral-bg text-muted hover:text-heading flex items-center justify-center shrink-0">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="mt-4 rounded-xl bg-neutral-bg border border-border p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-2">Selected plan</p>
+              <p className="text-sm font-semibold text-heading">{confirmPlan.name} {billing === "annual" ? "(Annual)" : "(Monthly)"}</p>
+              {confirmPlan.pricing ? (
+                <p className="text-sm text-muted mt-1">
+                  {inr.format(confirmPlan.pricing.setup ?? 0)} one-time + {inr.format(billing === "annual" ? (confirmPlan.pricing.annual ?? confirmPlan.pricing.monthly ?? 0) : (confirmPlan.pricing.monthly ?? 0))} {billing === "annual" ? "/yr" : "/mo"}
+                </p>
+              ) : (
+                <p className="text-sm text-muted mt-1">Custom pricing — we’ll confirm after review.</p>
+              )}
+              <p className="text-xs text-muted mt-2">We’ll prepare a proposal for this plan. You can switch plans before confirming.</p>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmPlan(null)}
+                disabled={creating}
+                className="cursor-pointer px-5 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-neutral-bg transition-colors disabled:opacity-50"
+              >
+                Go back to switch plan
+              </button>
+              <button
+                type="button"
+                onClick={confirmRequest}
+                disabled={creating}
+                className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90 disabled:opacity-50"
+              >
+                {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                Request proposal
               </button>
             </div>
           </div>

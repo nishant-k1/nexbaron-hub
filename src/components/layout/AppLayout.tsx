@@ -14,8 +14,6 @@ const PAGE_TITLES: Record<string, string> = {
   proposals: "Proposals", orders: "Orders", billing: "Billing", settings: "Settings",
 }
 
-const STAGE_ORDER = ["REGISTERED", "LEAD", "PACKAGE_SELECTED", "PROPOSAL_SENT", "PROPOSAL_ACCEPTED", "PAYMENT_PENDING", "CUSTOMER"]
-
 export default function AppLayout() {
   const { user, signOut } = useAuth()
   const division = useDivision()
@@ -40,20 +38,14 @@ export default function AppLayout() {
       .catch(() => setAccount(null))
   }, [division])
 
-  const accountStage = account?.lifecycleStage ?? null
-  const stageIdx = accountStage ? STAGE_ORDER.indexOf(accountStage) : -1
   const NAV: Array<{ to: string; label: string; icon: React.ComponentType<{ className?: string }>; end?: boolean; badge?: number }> = [
     ...(division === "print"
       ? [{ to: `/${division}`, label: "Dashboard", icon: LayoutDashboard, end: true }]
       : []),
     ...(division === "digital"
-      ? [{ to: `/${division}/plans`, label: "Plans", icon: Package }]
-      : []),
-    ...(division === "digital" && stageIdx >= 2
-      ? [{ to: `/${division}/proposals`, label: "Proposals", icon: FileText }]
-      : []),
-    ...(division === "digital" && stageIdx >= 5
       ? [
+          { to: `/${division}/plans`, label: "Plans", icon: Package },
+          { to: `/${division}/proposals`, label: "Proposals", icon: FileText },
           { to: `/${division}/orders`, label: "Orders", icon: ShoppingBag },
           { to: `/${division}/billing`, label: "Billing", icon: Receipt },
         ]

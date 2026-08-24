@@ -12,6 +12,11 @@ import {
   CreditCard,
   ArrowLeft,
   CreditCard as CreditCardIcon,
+  Globe,
+  ExternalLink,
+  Copy,
+  Share2,
+  Link2,
 } from "lucide-react";
 import { Skeleton, SkeletonCard, SkeletonTable, SkeletonList } from "@/components/ui/Skeleton";
 
@@ -65,6 +70,19 @@ interface Order {
     company?: string;
     city?: string;
   };
+  stagingUrl?: string;
+  liveWebsiteUrl?: string;
+  liveUrls?: { label: string; url: string }[];
+  socialLinks?: {
+    instagram?: string;
+    facebook?: string;
+    linkedin?: string;
+    twitter?: string;
+  };
+  googleBusinessProfile?: {
+    created: boolean;
+    verified: boolean;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -103,6 +121,14 @@ export default function OrderDetail() {
   const handleBillingDetails = () => {
     if (!order?.invoiceNumber) return;
     navigate(`/${division}/billing/${encodeURIComponent(order.invoiceNumber)}`);
+  };
+
+  const [copied, setCopied] = useState<string | null>(null);
+  const copyToClipboard = (text: string, key: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(key);
+      setTimeout(() => setCopied(null), 2000);
+    });
   };
 
   const handleProposalDetails = () => {
@@ -256,6 +282,169 @@ export default function OrderDetail() {
                     </button>
                   )}
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* Live Product Details Card */}
+          <div className="rounded-2xl bg-neutral-surface border border-border p-6 mt-6">
+            <h3 className="font-semibold text-heading mb-4 flex items-center gap-2">
+              <Globe className="h-5 w-5 text-accent" />
+              Live Product Details
+            </h3>
+            
+            {(order.liveWebsiteUrl || order.stagingUrl || (order.liveUrls && order.liveUrls.length > 0)) ? (
+              <div className="space-y-4">
+                {/* Live Website */}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-2">
+                    {order.liveWebsiteUrl ? "Live Website" : order.stagingUrl ? "Staging Website" : "Live Domains"}
+                  </p>
+                  {(order.liveWebsiteUrl || order.stagingUrl) && (
+                    <>
+                      <div className="flex items-center gap-2 p-3 rounded-xl bg-neutral-bg border border-border">
+                        <Globe className="h-4 w-4 text-accent shrink-0" />
+                        <a
+                          href={order.liveWebsiteUrl || order.stagingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-accent hover:underline truncate flex-1"
+                        >
+                          {order.liveWebsiteUrl || order.stagingUrl}
+                        </a>
+                        <button
+                          onClick={() => copyToClipboard(order.liveWebsiteUrl || order.stagingUrl || "", "website")}
+                          className="p-1.5 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors shrink-0"
+                          title="Copy link"
+                        >
+                          {copied === "website" ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                        </button>
+                        <a
+                          href={order.liveWebsiteUrl || order.stagingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors shrink-0"
+                          title="Open in new tab"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </div>
+                      {order.liveWebsiteUrl && order.stagingUrl && order.liveWebsiteUrl !== order.stagingUrl && (
+                        <div className="mt-3">
+                          <p className="text-xs text-muted mb-1">Staging URL</p>
+                          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-neutral-bg/50 border border-border/50">
+                            <span className="text-xs text-muted truncate flex-1">{order.stagingUrl}</span>
+                            <button
+                              onClick={() => copyToClipboard(order.stagingUrl || "", "staging")}
+                              className="p-1 rounded hover:bg-neutral-surface text-muted hover:text-heading shrink-0"
+                            >
+                              {copied === "staging" ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {order.liveUrls && order.liveUrls.length > 0 && (
+                    <div className={order.liveWebsiteUrl || order.stagingUrl ? "mt-3" : ""}>
+                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-2 flex items-center gap-1.5"><Link2 className="h-3 w-3" /> Additional domains</p>
+                      <div className="space-y-2">
+                        {order.liveUrls.map((entry, idx) => (
+                          <div key={idx} className="flex items-center gap-2 p-2.5 rounded-xl bg-neutral-bg border border-border hover:border-accent/30 transition-colors group">
+                            <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
+                              <Globe className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-heading">{entry.label}</p>
+                              <a href={entry.url} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline truncate block">{entry.url}</a>
+                            </div>
+                            <button
+                              onClick={() => copyToClipboard(entry.url, `liveUrl-${idx}`)}
+                              className="p-1.5 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors shrink-0"
+                              title="Copy link"
+                            >
+                              {copied === `liveUrl-${idx}` ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                            </button>
+                            <a href={entry.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors shrink-0" title="Open">
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Social Media Links */}
+                {(order.socialLinks?.instagram || order.socialLinks?.facebook || order.socialLinks?.linkedin || order.socialLinks?.twitter) && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-2">Social Media</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {order.socialLinks.instagram && (
+                        <a href={order.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2.5 rounded-xl bg-neutral-bg border border-border hover:border-accent/30 hover:bg-accent/5 transition-colors group">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white shrink-0">
+                            <Share2 className="h-4 w-4" />
+                          </div>
+                          <span className="text-xs font-medium text-heading group-hover:text-accent truncate">Instagram</span>
+                          <ExternalLink className="h-3 w-3 text-muted ml-auto shrink-0" />
+                        </a>
+                      )}
+                      {order.socialLinks.facebook && (
+                        <a href={order.socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2.5 rounded-xl bg-neutral-bg border border-border hover:border-accent/30 hover:bg-accent/5 transition-colors group">
+                          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shrink-0">
+                            <Share2 className="h-4 w-4" />
+                          </div>
+                          <span className="text-xs font-medium text-heading group-hover:text-accent truncate">Facebook</span>
+                          <ExternalLink className="h-3 w-3 text-muted ml-auto shrink-0" />
+                        </a>
+                      )}
+                      {order.socialLinks.linkedin && (
+                        <a href={order.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2.5 rounded-xl bg-neutral-bg border border-border hover:border-accent/30 hover:bg-accent/5 transition-colors group">
+                          <div className="w-8 h-8 rounded-lg bg-blue-700 flex items-center justify-center text-white shrink-0">
+                            <Share2 className="h-4 w-4" />
+                          </div>
+                          <span className="text-xs font-medium text-heading group-hover:text-accent truncate">LinkedIn</span>
+                          <ExternalLink className="h-3 w-3 text-muted ml-auto shrink-0" />
+                        </a>
+                      )}
+                      {order.socialLinks.twitter && (
+                        <a href={order.socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2.5 rounded-xl bg-neutral-bg border border-border hover:border-accent/30 hover:bg-accent/5 transition-colors group">
+                          <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center text-white shrink-0">
+                            <Share2 className="h-4 w-4" />
+                          </div>
+                          <span className="text-xs font-medium text-heading group-hover:text-accent truncate">Twitter</span>
+                          <ExternalLink className="h-3 w-3 text-muted ml-auto shrink-0" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Google Business Profile */}
+                {order.googleBusinessProfile && (
+                  <div className="pt-4 border-t border-border/60">
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-2">Google Business</p>
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className={`w-2 h-2 rounded-full ${order.googleBusinessProfile.verified ? "bg-emerald-500" : order.googleBusinessProfile.created ? "bg-amber-500" : "bg-muted"}`} />
+                      <span className="text-body">
+                        {order.googleBusinessProfile.verified ? "Verified" : order.googleBusinessProfile.created ? "Created — pending verification" : "Not yet created"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <div className="w-12 h-12 rounded-xl bg-neutral-bg border border-border flex items-center justify-center mx-auto mb-3">
+                  <Globe className="h-6 w-6 text-muted" />
+                </div>
+                <p className="text-sm font-medium text-heading">Not yet live</p>
+                <p className="text-xs text-muted mt-1 max-w-[260px] mx-auto">
+                  Your live product details will appear here once your order is delivered. We’ll share your website link and social profiles as soon as they’re ready.
+                </p>
+                {order.status !== "delivered" && (
+                  <p className="text-xs text-accent mt-3 font-medium">Current status: {order.status}</p>
+                )}
               </div>
             )}
           </div>

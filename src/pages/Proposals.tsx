@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDivision } from "@/theme/theme-provider";
 import { apiRequest, ApiError, type Division } from "@/lib/api";
-import { FileText, CheckCircle2, Clock, ChevronLeft, Check, AlertTriangle, Loader2, CreditCard, Receipt, Filter } from "lucide-react";
+import { FileText, CheckCircle2, Clock, ChevronLeft, Check, AlertTriangle, Loader2, CreditCard, Receipt, Filter, X, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
 
 interface ProposalService {
@@ -136,7 +137,6 @@ export default function Proposals() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [toast, setToast] = useState("");
 
   const initialProposal = searchParams.get("proposal");
   const [selected, setSelected] = useState<string | null>(initialProposal);
@@ -149,6 +149,9 @@ export default function Proposals() {
   const [invoiceError, setInvoiceError] = useState("");
   const [paying, setPaying] = useState(false);
   const [razorpayKeyId, setRazorpayKeyId] = useState("");
+  const [paymentSuccessInvoice, setPaymentSuccessInvoice] = useState<Invoice | null>(null);
+  const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
+  const [acceptSuccess, setAcceptSuccess] = useState<Proposal | null>(null);
 
   // Filter state: "all" | "pending" | "accepted"
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "accepted">("all");
@@ -174,7 +177,7 @@ export default function Proposals() {
     });
   }, [proposals, statusFilter]);
 
-  useEffect(() => { setAgreed(false); setToast(""); load(); }, [load]);
+  useEffect(() => { setAgreed(false); load(); }, [load]);
 
   // Fetch invoice when an ACCEPTED proposal is selected
   useEffect(() => {
@@ -209,11 +212,12 @@ export default function Proposals() {
     setError("");
     try {
       await apiRequest(`/${division}/proposals/${code}/accept`, { method: "POST", body: JSON.stringify({ accept: true }) }, division as Division);
-      setToast("Proposal accepted — thank you! We'll get started right away.");
       setAgreed(false);
+      const accepted = proposals.find((p) => p.proposalCode === code) || null;
+      if (accepted) setAcceptSuccess(accepted);
       load();
     } catch (e) {
-      setError(friendlyAcceptError(e));
+      toast.error(friendlyAcceptError(e), { duration: 4000 });
     } finally {
       setAccepting(false);
     }
@@ -237,15 +241,15 @@ export default function Proposals() {
           description: inv.invoiceNumber,
           order_id: order.id,
           handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
-            await apiRequest(`/${division}/billing/payments/verify`, {
+            const verifyRes = await apiRequest<{ success: boolean; orderId?: string }>(`/${division}/billing/payments/verify`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ ...response, invoiceNumber: inv.invoiceNumber }),
+              body: JSON.stringify({ ...response, invoiceNumber: inv.invoiceNumber, amount: inv.amount }),
             }, division as Division);
-            setToast("Payment successful — thank you!");
             const fresh = await apiRequest<{ invoice: Invoice }>(`/${division}/proposals/${selectedProposal?.proposalCode}/invoice`, {}, division as Division);
             setInvoice(fresh.invoice);
-            setTimeout(() => navigate(`/${division}/orders`), 2000);
+            setPaymentSuccessInvoice(fresh.invoice);
+            if (verifyRes.orderId) setPaymentOrderId(verifyRes.orderId);
           },
           modal: {
             ondismiss: () => setPaying(false),
@@ -253,18 +257,18 @@ export default function Proposals() {
         });
         rzp.open();
       } else {
-        await apiRequest(`/${division}/billing/payments/verify`, {
+        const verifyRes2 = await apiRequest<{ success: boolean; orderId?: string }>(`/${division}/billing/payments/verify`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ invoiceNumber: inv.invoiceNumber }),
+          body: JSON.stringify({ invoiceNumber: inv.invoiceNumber, amount: inv.amount }),
         }, division as Division);
-        setToast("Payment marked as paid (dev mode).");
         const fresh = await apiRequest<{ invoice: Invoice }>(`/${division}/proposals/${selectedProposal?.proposalCode}/invoice`, {}, division as Division);
         setInvoice(fresh.invoice);
-        setTimeout(() => navigate(`/${division}/orders`), 2000);
+        setPaymentSuccessInvoice(fresh.invoice);
+        if (verifyRes2.orderId) setPaymentOrderId(verifyRes2.orderId);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Payment failed");
+      toast.error(e instanceof Error ? e.message : "Payment failed", { duration: 4000 });
     } finally {
       setPaying(false);
     }
@@ -291,9 +295,6 @@ export default function Proposals() {
         </div>
       </div>
 
-      {toast && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-600">{toast}</div>
-      )}
       {error && (
         <div className="rounded-xl border border-red-500/30 bg-neutral-surface p-4 text-sm text-red-500">{error}</div>
       )}
@@ -362,13 +363,6 @@ export default function Proposals() {
           )}
         </>
       )}
-      {toast && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-600">{toast}</div>
-      )}
-      {error && (
-        <div className="rounded-xl border border-red-500/30 bg-neutral-surface p-4 text-sm text-red-500">{error}</div>
-      )}
-
       {selectedProposal && (
         <ProposalDetail
           proposal={selectedProposal}
@@ -383,6 +377,124 @@ export default function Proposals() {
           paying={paying}
           pay={pay}
         />
+      )}
+
+      {(acceptSuccess || paymentSuccessInvoice) && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => {
+            setAcceptSuccess(null);
+            setPaymentSuccessInvoice(null);
+          }}
+        >
+          <div
+            className="bg-neutral-surface rounded-2xl w-full max-w-md shadow-2xl p-6 transition-all duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {paymentSuccessInvoice ? (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center animate-in fade-in zoom-in duration-300">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
+                  <button
+                    onClick={() => setPaymentSuccessInvoice(null)}
+                    className="cursor-pointer w-8 h-8 rounded-lg hover:bg-neutral-bg text-muted hover:text-heading flex items-center justify-center"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <h3 className="text-lg font-bold text-heading animate-in fade-in slide-in-from-bottom-1 duration-300">Payment confirmed</h3>
+                <p className="text-sm text-muted mt-1 animate-in fade-in duration-300">Your payment for <span className="font-mono font-medium text-heading">{paymentSuccessInvoice.invoiceNumber}</span> was successful.</p>
+                <p className="text-sm text-body mt-3 animate-in fade-in duration-300 delay-100">Would you like to view your order details now?</p>
+                <div className="mt-6 flex justify-end gap-3 animate-in fade-in duration-300 delay-150">
+                  <button
+                    onClick={() => {
+                      setPaymentSuccessInvoice(null);
+                      setAcceptSuccess(null);
+                    }}
+                    className="cursor-pointer px-5 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-neutral-bg"
+                  >
+                    Stay here
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const inv = paymentSuccessInvoice;
+                  const orderId = paymentOrderId;
+                      setPaymentSuccessInvoice(null);
+                      setPaymentOrderId(null);
+                      setAcceptSuccess(null);
+                      if (orderId) {
+                        navigate(`/${division}/orders/${orderId}`);
+                        return;
+                      }
+                      try {
+                        const data = await apiRequest<{ orders: Array<{ _id: string; invoiceNumber?: string }> }>(`/${division}/orders`, {}, division as Division);
+                        const order = data.orders.find((o) => o.invoiceNumber === inv.invoiceNumber);
+                        if (order) navigate(`/${division}/orders/${order._id}`);
+                        else navigate(`/${division}/orders`);
+                      } catch {
+                        navigate(`/${division}/orders`);
+                      }
+                    }}
+                    className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90"
+                  >
+                    View order <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                    <Check className="h-5 w-5" />
+                  </div>
+                  <button
+                    onClick={() => setAcceptSuccess(null)}
+                    className="cursor-pointer w-8 h-8 rounded-lg hover:bg-neutral-bg text-muted hover:text-heading flex items-center justify-center"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <h3 className="text-lg font-bold text-heading">Proposal accepted</h3>
+                <p className="text-sm text-muted mt-1">
+                  You’ve accepted <span className="font-semibold text-heading">{acceptSuccess!.title}</span> ({acceptSuccess!.proposalCode}).
+                </p>
+                <p className="text-sm text-body mt-3">Your invoice is now ready. Would you like to continue to payment?</p>
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    onClick={() => setAcceptSuccess(null)}
+                    className="cursor-pointer px-5 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-neutral-bg"
+                  >
+                    Maybe later
+                  </button>
+                  <button
+                    onClick={() => {
+                      const inv = invoice;
+                      if (inv && inv.status === "PENDING") {
+                        pay(inv);
+                      } else {
+                        // Keep dialog open while invoice loads, then transition to payment stage
+                        if (invoiceLoading) return;
+                        setTimeout(() => {
+                          const el = document.getElementById("invoice-section");
+                          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }, 100);
+                        // Don't close — let pay() transition in-place when invoice ready
+                        // For now, close and show pay button
+                        setAcceptSuccess(null);
+                      }
+                    }}
+                    disabled={invoiceLoading || paying}
+                    className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90 disabled:opacity-50"
+                  >
+                    {invoiceLoading || paying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />} Continue to payment
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -490,14 +602,8 @@ function ProposalDetail({
           </div>
         )}
 
-        {proposal.status === "ACCEPTED" && (
-          <div className="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-            <div className="flex items-center gap-2 text-emerald-700">
-              <Check className="h-4 w-4" />
-              <p className="text-sm font-semibold">Proposal accepted</p>
-            </div>
-            {proposal.acceptedAt && <p className="text-xs text-emerald-700/80 mt-1">Accepted on {dateTimeFmt(proposal.acceptedAt)}</p>}
-          </div>
+        {proposal.status === "ACCEPTED" && proposal.acceptedAt && (
+          <p className="text-xs text-muted mt-3">Accepted on {dateTimeFmt(proposal.acceptedAt)}</p>
         )}
 
         {proposal.status === "SENT" && (
@@ -524,7 +630,7 @@ function ProposalDetail({
         )}
 
         {showInvoiceSection && (
-          <div className="mt-6 border-t border-border pt-5">
+          <div id="invoice-section" className="mt-6 border-t border-border pt-5">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Invoice</p>
               {invoice && (() => {

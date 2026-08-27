@@ -205,10 +205,10 @@ export default function Plans() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
+    <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-heading">Plans</h1>
-        <p className="text-sm text-muted mt-0.5">
+        <h1 className="text-xl sm:text-2xl font-bold text-heading">Plans</h1>
+        <p className="text-sm text-muted mt-0.5 break-words">
           {account ? `${account.name} · ${account.accountCode}` : "Choose the plan that fits your business."}
           {selectedPlanId
             ? " Your selected plan from the website is highlighted below."
@@ -352,7 +352,7 @@ export default function Plans() {
               <BillingToggle value={billing} onChange={setBilling} />
             </div>
           )}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {plans.map((plan) => {
             const Icon = PLAN_ICONS[plan.icon] ?? PackageIcon;
             const isSelected = selectedId === plan.id;
@@ -364,7 +364,7 @@ export default function Plans() {
                 key={plan.id}
                 onClick={() => setActivePlan(plan.id)}
                 className={cn(
-                  "cursor-pointer rounded-2xl bg-neutral-surface border p-6 flex flex-col transition-colors",
+                  "cursor-pointer rounded-2xl bg-neutral-surface border p-4 sm:p-6 flex flex-col transition-colors",
                   isSelected ? "border-accent ring-2 ring-accent/40" : "border-border hover:border-accent/40",
                 )}
               >
@@ -446,7 +446,7 @@ export default function Plans() {
                 key={customPkg.packageCode}
                 onClick={() => setActivePlan(customPkg.packageCode)}
                 className={cn(
-                  "cursor-pointer rounded-2xl bg-neutral-surface border p-6 flex flex-col transition-colors",
+                  "cursor-pointer rounded-2xl bg-neutral-surface border p-4 sm:p-6 flex flex-col transition-colors",
                   isSelected ? "border-accent ring-2 ring-accent/40" : "border-border hover:border-accent/40"
                 )}
               >

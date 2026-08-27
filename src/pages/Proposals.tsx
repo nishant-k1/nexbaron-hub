@@ -275,17 +275,17 @@ export default function Proposals() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-heading">Proposals</h1>
+    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-heading">Proposals</h1>
           <p className="text-sm text-muted mt-0.5">Review the plans we've prepared for you and accept the ones you're happy with.</p>
         </div>
-        <div className="relative">
+        <div className="relative self-start sm:self-auto shrink-0">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as "all" | "pending" | "accepted")}
-            className="appearance-none bg-neutral-surface border border-border rounded-xl px-4 py-2.5 text-sm font-medium text-heading focus:outline-none focus:border-accent/50 pr-10 cursor-pointer"
+            className="appearance-none bg-neutral-surface border border-border rounded-xl px-4 py-2.5 text-sm font-medium text-heading focus:outline-none focus:border-accent/50 pr-10 cursor-pointer min-h-11"
           >
             <option value="all">All</option>
             <option value="pending">Pending</option>
@@ -538,13 +538,13 @@ function ProposalDetail({
         <ChevronLeft className="h-4 w-4" /> Back to proposals
       </button>
 
-      <div className="rounded-2xl bg-neutral-surface border border-border p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-bold text-heading">{proposal.title}</h2>
-            <p className="text-xs text-muted mt-1">{proposal.proposalCode} · Package {proposal.packageId} · Version {proposal.version}</p>
+      <div className="rounded-2xl bg-neutral-surface border border-border p-4 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold text-heading break-words">{proposal.title}</h2>
+            <p className="text-xs text-muted mt-1 break-all">{proposal.proposalCode} · Package {proposal.packageId} · Version {proposal.version}</p>
           </div>
-          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.cls}`}>
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${meta.cls}`}>
             <Icon className="h-3.5 w-3.5" /> {meta.label}
           </span>
         </div>
@@ -567,11 +567,11 @@ function ProposalDetail({
           )}
         </div>
 
-        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="rounded-xl border border-border bg-neutral-bg p-3">
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="rounded-xl border border-border bg-neutral-bg p-3 sm:p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-1">One-time</p>
             {p.oneTimeEnabled ? (
-              <p className="text-sm text-heading">
+              <p className="text-sm text-heading break-words">
                 {inr.format(p.oneTimeFee || 0)}
                 {p.paymentSchedule ? ` · ${SCHEDULE_LABELS[p.paymentSchedule] || p.paymentSchedule}` : ""}
               </p>
@@ -579,10 +579,10 @@ function ProposalDetail({
               <p className="text-sm text-muted">Not included</p>
             )}
           </div>
-          <div className="rounded-xl border border-border bg-neutral-bg p-3">
+          <div className="rounded-xl border border-border bg-neutral-bg p-3 sm:p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-1">Recurring</p>
             {p.recurringEnabled ? (
-              <p className="text-sm text-heading">
+              <p className="text-sm text-heading break-words">
                 {inr.format(p.recurringFee || 0)} / {FREQUENCY_LABELS[p.recurringFrequency || ""] || p.recurringFrequency || "—"}
               </p>
             ) : (

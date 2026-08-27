@@ -1,11 +1,12 @@
 import { NavLink, Outlet, useLocation, Link } from "react-router-dom"
-import { LayoutDashboard, LogOut, X, AlertTriangle, Loader2, Bell, Sun, Moon, Package, MessageSquare, FileText, ShoppingBag, Receipt, ChevronRight, Home } from "lucide-react"
+import { LayoutDashboard, LogOut, X, AlertTriangle, Loader2, Bell, Sun, Moon, Package, MessageSquare, FileText, ShoppingBag, Receipt, ChevronRight, Home, Menu } from "lucide-react"
 import { Fragment, useState, useEffect, useRef } from "react"
 import { io, type Socket } from "socket.io-client"
 import { useAuth } from "@/auth/auth-context"
 import { useDivision, useTheme } from "@/theme/theme-provider"
 import { BrandMark } from "@/components/brand/BrandMark"
 import { Dropdown } from "@/components/ui/dropdown"
+import { useSwipeDrawer } from "@/hooks/useSwipeDrawer"
 import { cn } from "@/lib/cn"
 import { apiRequest, chatApiRequest, getChatUrl, getToken } from "@/lib/api"
 
@@ -30,6 +31,7 @@ export default function AppLayout() {
   const [settingsError, setSettingsError] = useState("")
   const [unreadCount, setUnreadCount] = useState(0)
   const [account, setAccount] = useState<{ accountCode: string; company?: string; lifecycleStage: string } | null>(null)
+  const { mobileOpen, setMobileOpen, isDragging, sidebarStyle, backdropOpacity, handlers } = useSwipeDrawer()
 
   useEffect(() => {
     if (!division) return
@@ -80,6 +82,9 @@ export default function AppLayout() {
     }
   }, [settingsOpen, user])
 
+  // Close mobile drawer on route change
+  useEffect(() => { setMobileOpen(false) }, [location.pathname])
+
   const handleUpdateProfile = async () => {
     setSaving(true); setSettingsError("")
     try {
@@ -100,16 +105,46 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="h-screen flex bg-neutral-bg overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-60 h-full bg-neutral-surface shrink-0 flex flex-col">
-        <Link to={`/${division}`} className="h-16 shrink-0 px-5 flex items-center gap-3 hover:bg-neutral-bg/40">
-          <BrandMark size={40} />
-          <div>
-            <h1 className="text-[15px] font-bold text-heading leading-tight tracking-tight">Nexbaron Hub</h1>
-            <p className="text-[11px] capitalize text-muted">{division} division</p>
-          </div>
-        </Link>
+    <div
+      className="h-[100dvh] flex bg-neutral-bg overflow-hidden"
+      onTouchStart={handlers.onTouchStart}
+      onTouchMove={handlers.onTouchMove}
+      onTouchEnd={handlers.onTouchEnd}
+    >
+      {/* Mobile backdrop — also reacts to drag */}
+      {(mobileOpen || isDragging) && (
+        <button
+          aria-label="Close menu"
+          onClick={() => setMobileOpen(false)}
+          className="cursor-pointer fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden"
+          style={backdropOpacity !== undefined ? { opacity: backdropOpacity / 0.5, backgroundColor: `rgba(0,0,0,${backdropOpacity})` } : undefined}
+        />
+      )}
+      {/* Edge swipe handle — visual hint on mobile */}
+      {!mobileOpen && !isDragging && (
+        <div className="lg:hidden fixed left-0 top-0 bottom-0 w-3 z-20 touch-manipulation" aria-hidden="true" />
+      )}
+      {/* Sidebar — drawer on mobile, static on lg */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-64 max-w-[85vw] bg-neutral-surface flex flex-col border-r border-border shadow-2xl lg:static lg:z-auto lg:w-60 lg:max-w-none lg:translate-x-0 lg:shadow-none ${!isDragging ? "transition-transform duration-300" : ""} ${!isDragging ? (mobileOpen ? "translate-x-0" : "-translate-x-full") : ""}`}
+        style={sidebarStyle}
+      >
+        <div className="h-16 shrink-0 px-5 flex items-center justify-between gap-3">
+          <Link to={`/${division}`} className="flex items-center gap-3 hover:opacity-90">
+            <BrandMark size={40} />
+            <div>
+              <h1 className="text-[15px] font-bold text-heading leading-tight tracking-tight">Nexbaron Hub</h1>
+              <p className="text-[11px] capitalize text-muted">{division} division</p>
+            </div>
+          </Link>
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="cursor-pointer lg:hidden flex items-center justify-center w-8 h-8 rounded-lg hover:bg-neutral-bg text-muted hover:text-heading"
+            aria-label="Close menu"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
         <nav className="px-3 py-4 space-y-1 flex-1">
           <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">Menu</p>
@@ -175,8 +210,15 @@ export default function AppLayout() {
       </aside>
 
       {/* Main */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-neutral-bg flex items-center justify-between px-6 shrink-0 gap-4">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <header className="h-14 sm:h-16 bg-neutral-bg flex items-center justify-between px-4 sm:px-6 shrink-0 gap-3 sm:gap-4">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="cursor-pointer lg:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-neutral-surface border border-border text-muted hover:text-heading shrink-0"
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
           <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm min-w-0 overflow-hidden">
             <Link to={`/${division}`} className="flex items-center gap-1.5 text-muted hover:text-heading transition-colors shrink-0">
               <Home className="w-4 h-4" />
@@ -242,7 +284,7 @@ export default function AppLayout() {
             </Dropdown>
           </div>
         </header>
-        <main className="flex-1 p-6 lg:p-8 overflow-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto overscroll-contain">
           <Outlet />
         </main>
       </div>
@@ -250,7 +292,7 @@ export default function AppLayout() {
       {/* Settings Modal */}
       {settingsOpen && (
         <div className="cursor-pointer fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setSettingsOpen(false)}>
-          <div className="bg-neutral-surface rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-neutral-surface rounded-2xl w-full max-w-md max-h-[90dvh] overflow-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4">
               <h2 className="text-lg font-bold text-heading">Account Settings</h2>
               <button onClick={() => setSettingsOpen(false)} className="cursor-pointer text-muted hover:text-heading"><X className="w-5 h-5" /></button>

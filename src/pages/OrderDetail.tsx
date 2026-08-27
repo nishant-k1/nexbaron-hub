@@ -160,7 +160,7 @@ export default function OrderDetail() {
           <SkeletonTable rows={8} />
         </SkeletonCard>
         
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-[1fr_360px]">
           <SkeletonCard>
             <Skeleton className="h-6 w-40 rounded mb-4" />
             <SkeletonTable rows={6} />
@@ -192,25 +192,25 @@ export default function OrderDetail() {
   const Icon = meta.icon;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <button onClick={() => navigate(`/${division}/orders`)} className="cursor-pointer p-2 rounded-lg hover:bg-neutral-bg transition-colors">
+    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+        <button onClick={() => navigate(`/${division}/orders`)} className="cursor-pointer p-2 rounded-lg hover:bg-neutral-bg transition-colors min-h-11 min-w-11 flex items-center justify-center">
           <ArrowLeft className="h-5 w-5 text-muted" />
         </button>
-        <div>
-          <h1 className="text-2xl font-bold text-heading">{order.projectId}</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-heading truncate">{order.projectId}</h1>
           <p className="text-sm text-muted mt-0.5">Order details and delivery timeline</p>
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium ${meta.cls}`}>
             <Icon className="h-4 w-4" /> {meta.label}
           </span>
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-[1fr_360px]">
         {/* Delivery Milestones - Left column, full height */}
-        <div className="rounded-2xl bg-neutral-surface border border-border p-6">
+        <div className="rounded-2xl bg-neutral-surface border border-border p-4 sm:p-6">
           <h2 className="text-xl font-bold text-heading mb-4 flex items-center gap-2">
             <Truck className="h-5 w-5 text-accent" />
             Delivery Milestones
@@ -253,30 +253,30 @@ export default function OrderDetail() {
         </div>
 
         {/* Order Info - Right column, sticky */}
-        <div className="lg:sticky lg:top-24">
-          <div className="rounded-2xl bg-neutral-surface border border-border p-6">
+        <div className="xl:sticky xl:top-24">
+          <div className="rounded-2xl bg-neutral-surface border border-border p-4 sm:p-6">
             <h3 className="font-semibold text-heading mb-4">Order Info</h3>
             <dl className="space-y-3 text-sm">
-              <div className="flex justify-between"><dt className="text-muted">Order ID</dt><dd className="text-body font-mono text-xs">{order._id}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted">Project ID</dt><dd className="text-body font-mono text-xs">{order.projectId}</dd></div>
-              {order.invoiceNumber && <div className="flex justify-between"><dt className="text-muted">Invoice</dt><dd className="text-body font-mono text-xs">{order.invoiceNumber}</dd></div>}
-              <div className="flex justify-between"><dt className="text-muted">Created</dt><dd className="text-body">{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted">Updated</dt><dd className="text-body">{new Date(order.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-muted shrink-0">Order ID</dt><dd className="text-body font-mono text-xs break-all text-right truncate">{order._id}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-muted shrink-0">Project ID</dt><dd className="text-body font-mono text-xs break-all text-right truncate">{order.projectId}</dd></div>
+              {order.invoiceNumber && <div className="flex justify-between gap-3"><dt className="text-muted shrink-0">Invoice</dt><dd className="text-body font-mono text-xs break-all text-right truncate">{order.invoiceNumber}</dd></div>}
+              <div className="flex justify-between gap-3"><dt className="text-muted shrink-0">Created</dt><dd className="text-body text-right">{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-muted shrink-0">Updated</dt><dd className="text-body text-right">{new Date(order.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</dd></div>
             </dl>
             
             {order.invoiceNumber && (
               <div className="mt-4 border-t border-border/60 pt-4">
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
                   <button
                     onClick={handleBillingDetails}
-                    className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90"
+                    className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90 min-h-11"
                   >
                     <CreditCardIcon className="h-4 w-4" /> View billing details
                   </button>
                   {order.proposalCode && (
                     <button
                       onClick={handleProposalDetails}
-                      className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border bg-neutral-surface font-semibold text-sm rounded-xl hover:bg-neutral-bg transition-colors"
+                      className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-border bg-neutral-surface font-semibold text-sm rounded-xl hover:bg-neutral-bg transition-colors min-h-11"
                     >
                       <FileText className="h-4 w-4" /> View proposal details
                     </button>
@@ -287,7 +287,7 @@ export default function OrderDetail() {
           </div>
 
           {/* Live Product Details Card */}
-          <div className="rounded-2xl bg-neutral-surface border border-border p-6 mt-6">
+          <div className="rounded-2xl bg-neutral-surface border border-border p-4 sm:p-6 mt-4 sm:mt-6">
             <h3 className="font-semibold text-heading mb-4 flex items-center gap-2">
               <Globe className="h-5 w-5 text-accent" />
               Live Product Details
@@ -302,19 +302,19 @@ export default function OrderDetail() {
                   </p>
                   {(order.liveWebsiteUrl || order.stagingUrl) && (
                     <>
-                      <div className="flex items-center gap-2 p-3 rounded-xl bg-neutral-bg border border-border">
+                      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 p-3 rounded-xl bg-neutral-bg border border-border">
                         <Globe className="h-4 w-4 text-accent shrink-0" />
                         <a
                           href={order.liveWebsiteUrl || order.stagingUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm font-medium text-accent hover:underline truncate flex-1"
+                          className="text-sm font-medium text-accent hover:underline truncate flex-1 min-w-0 break-all"
                         >
                           {order.liveWebsiteUrl || order.stagingUrl}
                         </a>
                         <button
                           onClick={() => copyToClipboard(order.liveWebsiteUrl || order.stagingUrl || "", "website")}
-                          className="p-1.5 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors shrink-0"
+                          className="p-2 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors shrink-0 min-h-11 min-w-11 flex items-center justify-center"
                           title="Copy link"
                         >
                           {copied === "website" ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
@@ -323,7 +323,7 @@ export default function OrderDetail() {
                           href={order.liveWebsiteUrl || order.stagingUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-1.5 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors shrink-0"
+                          className="p-2 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors shrink-0 min-h-11 min-w-11 flex items-center justify-center"
                           title="Open in new tab"
                         >
                           <ExternalLink className="h-4 w-4" />
@@ -333,10 +333,10 @@ export default function OrderDetail() {
                         <div className="mt-3">
                           <p className="text-xs text-muted mb-1">Staging URL</p>
                           <div className="flex items-center gap-2 p-2.5 rounded-lg bg-neutral-bg/50 border border-border/50">
-                            <span className="text-xs text-muted truncate flex-1">{order.stagingUrl}</span>
+                            <span className="text-xs text-muted truncate flex-1 min-w-0 break-all">{order.stagingUrl}</span>
                             <button
                               onClick={() => copyToClipboard(order.stagingUrl || "", "staging")}
-                              className="p-1 rounded hover:bg-neutral-surface text-muted hover:text-heading shrink-0"
+                              className="p-2 rounded hover:bg-neutral-surface text-muted hover:text-heading shrink-0 min-h-11 min-w-11 flex items-center justify-center"
                             >
                               {copied === "staging" ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
                             </button>
@@ -360,12 +360,12 @@ export default function OrderDetail() {
                             </div>
                             <button
                               onClick={() => copyToClipboard(entry.url, `liveUrl-${idx}`)}
-                              className="p-1.5 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors shrink-0"
+                              className="p-2 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors shrink-0 min-h-11 min-w-11 flex items-center justify-center"
                               title="Copy link"
                             >
                               {copied === `liveUrl-${idx}` ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
                             </button>
-                            <a href={entry.url} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors shrink-0" title="Open">
+                            <a href={entry.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg hover:bg-neutral-surface text-muted hover:text-heading transition-colors shrink-0 min-h-11 min-w-11 flex items-center justify-center" title="Open">
                               <ExternalLink className="h-3.5 w-3.5" />
                             </a>
                           </div>
@@ -379,7 +379,7 @@ export default function OrderDetail() {
                 {(order.socialLinks?.instagram || order.socialLinks?.facebook || order.socialLinks?.linkedin || order.socialLinks?.twitter) && (
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-2">Social Media</p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {order.socialLinks.instagram && (
                         <a href={order.socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2.5 rounded-xl bg-neutral-bg border border-border hover:border-accent/30 hover:bg-accent/5 transition-colors group">
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white shrink-0">

@@ -62,26 +62,26 @@ export default function HubDashboard() {
         ];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-heading">Welcome back{account ? `, ${account.name.split(" ")[0]}` : ""}</h1>
+    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-heading">Welcome back{account ? `, ${account.name.split(" ")[0]}` : ""}</h1>
           <p className="text-sm text-muted mt-0.5 capitalize">{division} division</p>
         </div>
         {account && (
-          <span className="rounded-full bg-accent/10 text-accent px-3 py-1.5 text-xs font-medium">
+          <span className="rounded-full bg-accent/10 text-accent px-3 py-1.5 text-xs font-medium shrink-0 self-start sm:self-auto">
             {STAGE_LABELS[account.lifecycleStage] || account.lifecycleStage}
           </span>
         )}
       </div>
 
       {account && (
-        <div className="rounded-2xl bg-neutral-surface border border-border p-5">
+        <div className="rounded-2xl bg-neutral-surface border border-border p-4 sm:p-6">
           <div className="flex items-center justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">Account ID</p>
-              <p className="text-2xl font-extrabold tracking-tight text-heading mt-1 font-mono">{account.accountCode}</p>
-              {account.email && <p className="text-sm text-muted mt-1">{account.email}</p>}
+              <p className="text-xl sm:text-2xl font-extrabold tracking-tight text-heading mt-1 font-mono break-all">{account.accountCode}</p>
+              {account.email && <p className="text-sm text-muted mt-1 break-all">{account.email}</p>}
             </div>
             <div className="w-12 h-12 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0">
               <Hash className="w-6 h-6" />
@@ -90,12 +90,12 @@ export default function HubDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         {cards.map((c) => (
           <Link
             key={c.to}
             to={c.to}
-            className="cursor-pointer group rounded-2xl bg-neutral-surface border border-border p-5 hover:border-accent/30 transition-colors"
+            className="cursor-pointer group rounded-2xl bg-neutral-surface border border-border p-4 sm:p-6 hover:border-accent/30 transition-colors"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">

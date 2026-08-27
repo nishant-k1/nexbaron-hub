@@ -130,17 +130,17 @@ export default function Orders() {
   }, [orders, packageFilter]);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-heading">Orders</h1>
+    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-heading">Orders</h1>
           <p className="text-sm text-muted mt-0.5">Track your orders and delivery progress.</p>
         </div>
-        <div className="relative">
+        <div className="relative self-start sm:self-auto shrink-0">
           <select
             value={packageFilter}
             onChange={(e) => setPackageFilter(e.target.value)}
-            className="appearance-none bg-neutral-surface border border-border rounded-xl px-4 py-2.5 text-sm font-medium text-heading focus:outline-none focus:border-accent/50 pr-10 cursor-pointer"
+            className="appearance-none bg-neutral-surface border border-border rounded-xl px-4 py-2.5 text-sm font-medium text-heading focus:outline-none focus:border-accent/50 pr-10 cursor-pointer min-h-11"
           >
             <option value="">All Plans</option>
             <option value="starter">Starter</option>
@@ -204,11 +204,11 @@ export default function Orders() {
                 key={order._id}
                 role="button"
                 tabIndex={0}
-                className="group rounded-2xl bg-neutral-surface border border-border p-5 cursor-pointer hover:border-accent/30 transition-colors"
+                className="group rounded-2xl bg-neutral-surface border border-border p-4 sm:p-5 cursor-pointer hover:border-accent/30 transition-colors"
                 onClick={() => handleViewOrder(order._id)}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleViewOrder(order._id); }}
               >
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-9 h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
                       <Package className="h-4.5 w-4.5" />
@@ -218,14 +218,14 @@ export default function Orders() {
                       <p className="text-xs text-muted">{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
                     <span className="hidden sm:block text-base font-bold text-heading">{inr.format(order.amount)}</span>
                     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.cls}`}>
                       <Icon className="h-3.5 w-3.5" /> {meta.label}
                     </span>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center justify-between gap-4">
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {order.milestones.slice(0, 4).map((ms, i) => {
                       const mMeta = MILESTONE_STATUS_META[ms.status] || { label: ms.status, cls: "bg-neutral-bg text-muted", icon: Clock };
@@ -243,7 +243,7 @@ export default function Orders() {
                     )}
                     {order.milestones.length === 0 && <span className="text-xs text-muted">No milestones</span>}
                   </div>
-                  <span className="text-xs font-medium text-muted group-hover:text-accent transition-colors flex items-center gap-1 shrink-0">
+                  <span className="text-xs font-medium text-muted group-hover:text-accent transition-colors flex items-center gap-1 shrink-0 min-h-11 px-2 py-2 -mr-2">
                     View <ArrowRight className="h-3.5 w-3.5" />
                   </span>
                 </div>

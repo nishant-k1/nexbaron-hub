@@ -141,19 +141,19 @@ export default function BillingDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto space-y-8 animate-pulse">
+      <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8 animate-pulse px-1 sm:px-0">
         <div className="h-6 w-48 bg-neutral-bg rounded" />
-        <div className="rounded-2xl bg-neutral-surface border border-border p-8 h-32" />
-        <div className="rounded-2xl bg-neutral-surface border border-border p-8 h-64" />
+        <div className="rounded-2xl bg-neutral-surface border border-border p-4 sm:p-6 lg:p-8 h-32" />
+        <div className="rounded-2xl bg-neutral-surface border border-border p-4 sm:p-6 lg:p-8 h-64" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="rounded-2xl border border-red-500/30 bg-neutral-surface p-6 text-sm text-red-500">{error}</div>
-        <button onClick={() => navigate(`/${division}/billing`)} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90">
+      <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6 px-1 sm:px-0">
+        <div className="rounded-2xl border border-red-500/30 bg-neutral-surface p-4 sm:p-6 text-sm text-red-500">{error}</div>
+        <button onClick={() => navigate(`/${division}/billing`)} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90 min-h-11">
           <ArrowLeft className="h-4 w-4" /> Back to billing
         </button>
       </div>
@@ -162,8 +162,8 @@ export default function BillingDetail() {
 
   if (!invoice) {
     return (
-      <div className="max-w-2xl mx-auto">
-        <div className="rounded-2xl bg-neutral-surface border border-border p-12 flex flex-col items-center text-center">
+      <div className="max-w-2xl mx-auto px-1 sm:px-0">
+        <div className="rounded-2xl bg-neutral-surface border border-border p-8 sm:p-12 flex flex-col items-center text-center">
           <h3 className="font-semibold text-heading">Invoice not found</h3>
           <p className="text-sm text-muted mt-1">The requested invoice could not be found.</p>
         </div>
@@ -177,9 +177,9 @@ export default function BillingDetail() {
   const amountDue = summary?.amountDue ?? Math.max(0, invoice.amount - totalPaid);
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8 px-1 sm:px-0">
       {/* Header — minimal */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
         <button onClick={() => navigate(`/${division}/billing`)} className="cursor-pointer p-2 rounded-xl hover:bg-neutral-bg transition-colors">
           <ArrowLeft className="h-5 w-5 text-muted" />
         </button>
@@ -204,7 +204,7 @@ export default function BillingDetail() {
 
       {/* One-time — separate minimal card, lean */}
       {hasOneTime && summary && (
-        <div className="rounded-2xl bg-neutral-surface border border-border p-8">
+        <div className="rounded-2xl bg-neutral-surface border border-border p-4 sm:p-6 lg:p-8">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">One-time — Setup</h3>
             <div className="flex items-center gap-2">
@@ -212,7 +212,7 @@ export default function BillingDetail() {
                 {summary.oneTimeDue === 0 ? "Fully paid" : `${inr.format(summary.oneTimeDue)} due`}
               </span>
               {summary.oneTimePaid > 0 && (
-                <button onClick={() => handleDownloadReceipt()} disabled={downloading === "full"} className="p-1.5 rounded-full border border-border hover:bg-neutral-bg disabled:opacity-50">
+                <button onClick={() => handleDownloadReceipt()} disabled={downloading === "full"} className="p-2 rounded-full border border-border hover:bg-neutral-bg disabled:opacity-50 min-h-11 min-w-11 flex items-center justify-center">
                   {downloading === "full" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5 text-muted" />}
                 </button>
               )}
@@ -231,7 +231,7 @@ export default function BillingDetail() {
         const paidInstallments = installments.filter(i => i.status === "paid");
         return (
         <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
-          <div className="p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
             <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Recurring — Paid history</h3>
             <p className="text-xl font-semibold text-heading mt-4">{inr.format(summary.recurringPaid)}<span className="text-sm font-normal text-muted"> paid</span></p>
             <p className="text-xs text-muted mt-1">{inr.format(summary.recurringTotal)}/mo</p>
@@ -239,12 +239,12 @@ export default function BillingDetail() {
           {paidInstallments.length > 0 ? (
             <div className="border-t border-border divide-y divide-border/60">
               {paidInstallments.map((inst) => (
-                <div key={inst.number} className="flex items-center justify-between px-8 py-3.5">
+                <div key={inst.number} className="flex items-center justify-between px-4 sm:px-8 py-3 sm:py-3.5 gap-3">
                   <span className="text-sm text-heading">{inst.paidAt ? new Date(inst.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : inst.dueDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-heading">{inr.format(inst.amount)}</span>
                     {inst.paymentId && (
-                      <button onClick={() => handleDownloadReceipt(inst.paymentId)} disabled={downloading === inst.paymentId} className="p-1.5 rounded-full border border-border hover:bg-neutral-bg disabled:opacity-50">
+                      <button onClick={() => handleDownloadReceipt(inst.paymentId)} disabled={downloading === inst.paymentId} className="p-2 rounded-full border border-border hover:bg-neutral-bg disabled:opacity-50 min-h-11 min-w-11 flex items-center justify-center">
                         {downloading === inst.paymentId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5 text-muted" />}
                       </button>
                     )}
@@ -253,7 +253,7 @@ export default function BillingDetail() {
               ))}
             </div>
           ) : (
-            <div className="border-t border-border px-8 py-6">
+            <div className="border-t border-border px-4 sm:px-8 py-6">
               <p className="text-sm text-muted">No recurring payments yet</p>
             </div>
           )}

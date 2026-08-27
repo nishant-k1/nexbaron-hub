@@ -240,7 +240,7 @@ export default function BillingDetail() {
             <div className="border-t border-border divide-y divide-border/60">
               {paidInstallments.map((inst) => (
                 <div key={inst.number} className="flex items-center justify-between px-4 sm:px-8 py-3 sm:py-3.5 gap-3">
-                  <span className="text-sm text-heading">{inst.paidAt ? new Date(inst.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : inst.dueDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                  <span className="text-sm text-heading">{inst.paidAt ? new Date(inst.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : new Date(inst.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-heading">{inr.format(inst.amount)}</span>
                     {inst.paymentId && (

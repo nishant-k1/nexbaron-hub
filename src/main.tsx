@@ -5,6 +5,10 @@ import App from './App.tsx'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { initSentry } from '@/lib/sentry'
 import { initGlobalErrorHandlers } from '@/lib/runtime-errors'
+// @ts-ignore - virtual module provided by vite-plugin-pwa
+import { registerSW } from 'virtual:pwa-register'
+
+registerSW({ immediate: true })
 
 initSentry()
 initGlobalErrorHandlers()

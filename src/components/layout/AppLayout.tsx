@@ -129,7 +129,7 @@ export default function AppLayout() {
         className={`fixed inset-y-0 left-0 z-40 w-64 max-w-[85vw] bg-neutral-surface flex flex-col border-r border-border shadow-2xl lg:static lg:z-auto lg:w-60 lg:max-w-none lg:translate-x-0 lg:shadow-none ${!isDragging ? "transition-transform duration-300" : ""} ${!isDragging ? (mobileOpen ? "translate-x-0" : "-translate-x-full") : ""}`}
         style={sidebarStyle}
       >
-        <div className="h-16 shrink-0 px-5 flex items-center justify-between gap-3">
+        <div className="h-16 shrink-0 px-5 flex items-center gap-3">
           <Link to={`/${division}`} className="flex items-center gap-3 hover:opacity-90">
             <BrandMark size={40} />
             <div>
@@ -137,13 +137,6 @@ export default function AppLayout() {
               <p className="text-[11px] capitalize text-muted">{division} division</p>
             </div>
           </Link>
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="cursor-pointer lg:hidden flex items-center justify-center w-8 h-8 rounded-lg hover:bg-neutral-bg text-muted hover:text-heading"
-            aria-label="Close menu"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
         <nav className="px-3 py-4 space-y-1 flex-1">

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDivision } from "@/theme/theme-provider";
 import { apiRequest, chatApiRequest, type Division } from "@/lib/api";
+import { useAuth } from "@/auth/auth-context";
 import { cn } from "@/lib/cn";
 import { BillingToggle } from "@/components/ui/BillingToggle";
 import { Skeleton, SkeletonCard, SkeletonList } from "@/components/ui/Skeleton";
@@ -78,9 +79,23 @@ const inr = new Intl.NumberFormat("en-IN", {
 export default function Plans() {
   const division = useDivision();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const selectedPlanId = searchParams.get("plan");
-  const initialBilling: "monthly" | "annual" = searchParams.get("billing") === "annual" ? "annual" : "monthly";
+  // URL intent is primary; fallback to persisted User.planConfig (SSOT) so
+  // first-time web selection survives even if ?plan= is stripped or user
+  // navigates directly to /plans after authenticated redirect.
+  const urlPlanId = searchParams.get("plan");
+  const persistedPlanId = user?.planConfig?.planId ?? null;
+  const persistedBilling = user?.planConfig?.billingCycle === "annual" ? "annual" : "monthly";
+  // URL intent drives the auto-modal; persisted config is fallback highlight only.
+  const selectedPlanId = urlPlanId;
+  const highlightPlanId = urlPlanId ?? persistedPlanId;
+  const initialBilling: "monthly" | "annual" =
+    searchParams.get("billing") === "annual"
+      ? "annual"
+      : urlPlanId
+        ? "monthly"
+        : persistedBilling;
 
   const [billing, setBilling] = useState<"monthly" | "annual">(initialBilling);
   const [plans, setPlans] = useState<CatalogPlan[]>([]);
@@ -114,6 +129,16 @@ export default function Plans() {
     };
   }, [division]);
 
+  // Pre-open confirm modal when intent is carried via ?plan=&billing= (from Web pricing)
+  useEffect(() => {
+    if (loadingCatalog || !selectedPlanId || confirmPlan || customNotice) return;
+    const match = plans.find((p) => p.id === selectedPlanId);
+    if (!match || match.custom) return;
+    setBilling(initialBilling);
+    setActivePlan(match.id);
+    setConfirmPlan(match);
+  }, [loadingCatalog, selectedPlanId, plans, initialBilling, confirmPlan, customNotice]);
+
   useEffect(() => {
     let active = true;
     Promise.all([
@@ -135,7 +160,7 @@ export default function Plans() {
   }, [division]);
 
   const customPkg = accountPkgs.find((p) => p.type === "CUSTOM");
-  const selectedId = activePlan ?? customPkg?.packageCode ?? selectedPlanId;
+  const selectedId = activePlan ?? customPkg?.packageCode ?? highlightPlanId ?? selectedPlanId;
   const cycleSuffix = billing === "annual" ? "/yr" : "/mo";
 
   const handleChoose = async (plan: CatalogPlan) => {
@@ -210,11 +235,17 @@ export default function Plans() {
         <h1 className="text-xl sm:text-2xl font-bold text-heading">Plans</h1>
         <p className="text-sm text-muted mt-0.5 break-words">
           {account ? `${account.name} · ${account.accountCode}` : "Choose the plan that fits your business."}
-          {selectedPlanId
-            ? " Your selected plan from the website is highlighted below."
+          {highlightPlanId
+            ? ` Your choice${selectedPlanId ? " from the website" : ""} (${highlightPlanId}${initialBilling === "annual" ? ", annual" : ""}) is highlighted — confirm below to request a proposal.`
             : " All plans are available — pick the one that works for you."}
         </p>
       </div>
+
+      {(selectedPlanId ?? highlightPlanId) && plans.length > 0 && !plans.some((p) => p.id === (selectedPlanId ?? highlightPlanId)!) && (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300">
+          The plan <span className="font-semibold">{selectedPlanId ?? highlightPlanId}</span> is no longer available. Choose another plan below.
+        </div>
+      )}
 
       {customNotice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">

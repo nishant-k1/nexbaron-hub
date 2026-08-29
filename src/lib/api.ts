@@ -60,6 +60,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, div
   const method = options.method ?? "GET"
   try {
     const response = await fetch(url, {
+      credentials: "include",
       ...options,
       headers: { ...getAuthHeaders(division), ...(options.headers ?? {}) },
     })

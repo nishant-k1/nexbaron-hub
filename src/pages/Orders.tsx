@@ -78,14 +78,8 @@ const inr = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 0,
 });
 
-const PACKAGE_OPTIONS = [
-  { value: "", label: "All Plans" },
-  { value: "starter", label: "Starter" },
-  { value: "launch", label: "Launch" },
-  { value: "growth", label: "Growth" },
-  { value: "scale", label: "Scale" },
-  { value: "custom", label: "Custom" },
-];
+// Filter options come from the API catalog (SSOT) — no hardcoded business data.
+const PLAN_FILTER_DEFAULT = [{ value: "", label: "All Plans" }];
 
 export default function Orders() {
   const division = useDivision();
@@ -94,6 +88,7 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [packageFilter, setPackageFilter] = useState("");
+  const [packageOptions, setPackageOptions] = useState<{ value: string; label: string }[]>(PLAN_FILTER_DEFAULT);
 
   useEffect(() => {
     if (!division) return;
@@ -111,6 +106,24 @@ export default function Orders() {
       })
       .finally(() => {
         if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [division]);
+
+  useEffect(() => {
+    if (!division) return;
+    let active = true;
+    apiRequest<{ plans: { id: string; name: string }[] }>(`/${division}/catalog`, {}, division as Division)
+      .then((d) => {
+        if (!active) return;
+        const opts = [{ value: "", label: "All Plans" }, ...(d.plans || []).map((p) => ({ value: p.id, label: p.name }))];
+        setPackageOptions(opts);
+      })
+      .catch(() => {
+        if (!active) return;
+        setPackageOptions(PLAN_FILTER_DEFAULT);
       });
     return () => {
       active = false;
@@ -142,12 +155,11 @@ export default function Orders() {
             onChange={(e) => setPackageFilter(e.target.value)}
             className="appearance-none bg-neutral-surface border border-border rounded-xl px-4 py-2.5 text-sm font-medium text-heading focus:outline-none focus:border-accent/50 pr-10 cursor-pointer min-h-11"
           >
-            <option value="">All Plans</option>
-            <option value="starter">Starter</option>
-            <option value="launch">Launch</option>
-            <option value="growth">Growth</option>
-            <option value="scale">Scale</option>
-            <option value="custom">Custom</option>
+            {packageOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
           <Filter className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted pointer-events-none" />
         </div>

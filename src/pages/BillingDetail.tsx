@@ -130,7 +130,7 @@ export default function BillingDetail() {
 
   if (!decodedInvoiceNumber) {
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         <button onClick={() => navigate(`/${division}/orders`)} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90">
           <ArrowLeft className="h-4 w-4" /> Back to orders
         </button>
@@ -141,7 +141,7 @@ export default function BillingDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8 animate-pulse px-1 sm:px-0">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-pulse">
         <div className="h-6 w-48 bg-neutral-bg rounded" />
         <div className="rounded-2xl bg-neutral-surface border border-border p-4 sm:p-6 lg:p-8 h-32" />
         <div className="rounded-2xl bg-neutral-surface border border-border p-4 sm:p-6 lg:p-8 h-64" />
@@ -151,7 +151,7 @@ export default function BillingDetail() {
 
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6 px-1 sm:px-0">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         <div className="rounded-2xl border border-red-500/30 bg-neutral-surface p-4 sm:p-6 text-sm text-red-500">{error}</div>
         <button onClick={() => navigate(`/${division}/billing`)} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90 min-h-11">
           <ArrowLeft className="h-4 w-4" /> Back to billing
@@ -162,7 +162,7 @@ export default function BillingDetail() {
 
   if (!invoice) {
     return (
-      <div className="max-w-2xl mx-auto px-1 sm:px-0">
+      <div className="max-w-7xl mx-auto">
         <div className="rounded-2xl bg-neutral-surface border border-border p-8 sm:p-12 flex flex-col items-center text-center">
           <h3 className="font-semibold text-heading">Invoice not found</h3>
           <p className="text-sm text-muted mt-1">The requested invoice could not be found.</p>
@@ -177,7 +177,7 @@ export default function BillingDetail() {
   const amountDue = summary?.amountDue ?? Math.max(0, invoice.amount - totalPaid);
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8 px-1 sm:px-0">
+    <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
       {/* Header — minimal */}
       <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
         <button onClick={() => navigate(`/${division}/billing`)} className="cursor-pointer p-2 rounded-xl hover:bg-neutral-bg transition-colors">
@@ -202,59 +202,98 @@ export default function BillingDetail() {
         )}
       </div>
 
-      {/* One-time — separate minimal card, lean */}
+      {/* One-time — PROMINENT hero card */}
       {hasOneTime && summary && (
-        <div className="rounded-2xl bg-neutral-surface border border-border p-4 sm:p-6 lg:p-8">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">One-time — Setup</h3>
-            <div className="flex items-center gap-2">
-              <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${summary.oneTimeDue === 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
-                {summary.oneTimeDue === 0 ? "Fully paid" : `${inr.format(summary.oneTimeDue)} due`}
-              </span>
-              {summary.oneTimePaid > 0 && (
-                <button onClick={() => handleDownloadReceipt()} disabled={downloading === "full"} className="p-2 rounded-full border border-border hover:bg-neutral-bg disabled:opacity-50 min-h-11 min-w-11 flex items-center justify-center">
-                  {downloading === "full" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5 text-muted" />}
+        <div className="rounded-2xl bg-neutral-surface border-2 border-accent/20 p-5 sm:p-7 lg:p-8 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-accent text-accent-fg flex items-center justify-center shrink-0">
+                <CreditCard className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted">One-time payment</h3>
+                <p className="text-xs text-muted mt-0.5">Setup & launch — pay once</p>
+              </div>
+            </div>
+            <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full shrink-0 ${summary.oneTimeDue === 0 ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/20" : "bg-amber-500/15 text-amber-600 border border-amber-500/20"}`}>
+              {summary.oneTimeDue === 0 ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
+              {summary.oneTimeDue === 0 ? "Fully paid" : `${inr.format(summary.oneTimeDue)} due`}
+            </span>
+          </div>
+
+          <div className="mt-5">
+            <p className="text-3xl sm:text-4xl font-extrabold tracking-tight text-heading">{inr.format(summary.oneTimeTotal)}</p>
+            <p className="text-sm text-muted mt-2 leading-relaxed">{summary.oneTimeItems.map(li => li.label).join(", ") || "Setup fee"}</p>
+          </div>
+
+          {/* progress */}
+          <div className="mt-5">
+            <div className="flex items-center justify-between text-xs mb-2">
+              <span className="text-muted">{inr.format(summary.oneTimePaid)} paid</span>
+              <span className={`font-medium ${summary.oneTimeDue === 0 ? "text-emerald-600" : "text-muted"}`}>{summary.oneTimeDue === 0 ? "Paid in full" : `${Math.round((summary.oneTimePaid / Math.max(1, summary.oneTimeTotal)) * 100)}%`}</span>
+            </div>
+            <div className="h-2 w-full bg-neutral-bg rounded-full overflow-hidden border border-border/50">
+              <div className="h-full bg-accent transition-all duration-500" style={{ width: `${Math.min(100, Math.round((summary.oneTimePaid / Math.max(1, summary.oneTimeTotal)) * 100))}%` }} />
+            </div>
+          </div>
+
+          {summary.oneTimePaid > 0 && (
+            <div className="mt-5 flex gap-2">
+              <button onClick={() => handleDownloadReceipt()} disabled={downloading === "full"} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-neutral-bg hover:bg-neutral-surface text-sm font-medium disabled:opacity-50">
+                {downloading === "full" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Receipt
+              </button>
+              {summary.oneTimeDue > 0 && invoice.status === "PENDING" && (
+                <button onClick={() => setShowPaymentOptions(true)} className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-accent-fg rounded-xl text-sm font-bold hover:opacity-90">
+                  Pay {inr.format(summary.oneTimeDue)}
                 </button>
               )}
             </div>
-          </div>
-          <p className="text-sm text-muted mt-3">{summary.oneTimeItems.map(li => li.label).join(", ") || "Setup fee"}</p>
-          <div className="flex items-baseline justify-between mt-4">
-            <p className="text-xl font-semibold text-heading">{inr.format(summary.oneTimeTotal)}</p>
-            <p className="text-xs text-muted">{summary.oneTimeDue === 0 ? "Paid in full" : `${inr.format(summary.oneTimePaid)} of ${inr.format(summary.oneTimeTotal)} paid`}</p>
-          </div>
+          )}
         </div>
       )}
 
-      {/* Recurring — history of paid only */}
+      {/* Recurring — thinner rows table structure */}
       {hasRecurring && summary && (() => {
         const paidInstallments = installments.filter(i => i.status === "paid");
         return (
         <div className="rounded-2xl bg-neutral-surface border border-border overflow-hidden">
-          <div className="p-4 sm:p-6 lg:p-8">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-muted">Recurring — Paid history</h3>
-            <p className="text-xl font-semibold text-heading mt-4">{inr.format(summary.recurringPaid)}<span className="text-sm font-normal text-muted"> paid</span></p>
-            <p className="text-xs text-muted mt-1">{inr.format(summary.recurringTotal)}/mo</p>
+          <div className="px-4 sm:px-5 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-neutral-bg/50">
+            <div>
+              <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted">Recurring billing</h3>
+              <p className="text-xs text-muted mt-1">{inr.format(summary.recurringTotal)}/mo · <span className="text-heading font-medium">{inr.format(summary.recurringPaid)} paid</span> · {inr.format(summary.recurringDue)} due</p>
+            </div>
+            <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-neutral-surface border border-border text-muted">{paidInstallments.length} paid</span>
           </div>
           {paidInstallments.length > 0 ? (
-            <div className="border-t border-border divide-y divide-border/60">
+            <div className="divide-y divide-border/40">
+              <div className="hidden sm:grid grid-cols-[1fr_110px_48px] gap-2 px-5 py-2 bg-neutral-bg/30 text-[10px] font-semibold uppercase tracking-widest text-muted">
+                <span>Date</span><span className="text-right">Amount</span><span className="text-right">Receipt</span>
+              </div>
               {paidInstallments.map((inst) => (
-                <div key={inst.number} className="flex items-center justify-between px-4 sm:px-8 py-3 sm:py-3.5 gap-3">
-                  <span className="text-sm text-heading">{inst.paidAt ? new Date(inst.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : new Date(inst.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-heading">{inr.format(inst.amount)}</span>
+                <div key={inst.number} className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_110px_48px] items-center gap-2 px-4 sm:px-5 py-2.5 hover:bg-neutral-bg/40 transition-colors">
+                  <span className="text-sm text-heading truncate">{inst.paidAt ? new Date(inst.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : new Date(inst.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                  <span className="text-sm font-semibold text-heading text-right">{inr.format(inst.amount)}</span>
+                  <span className="hidden sm:flex justify-end">
+                    {inst.paymentId ? (
+                      <button onClick={() => handleDownloadReceipt(inst.paymentId)} disabled={downloading === inst.paymentId} className="cursor-pointer w-7 h-7 rounded-lg border border-border hover:bg-neutral-surface disabled:opacity-50 flex items-center justify-center">
+                        {downloading === inst.paymentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3 text-muted" />}
+                      </button>
+                    ) : <span className="text-muted">—</span>}
+                  </span>
+                  <span className="sm:hidden flex justify-end">
                     {inst.paymentId && (
-                      <button onClick={() => handleDownloadReceipt(inst.paymentId)} disabled={downloading === inst.paymentId} className="p-2 rounded-full border border-border hover:bg-neutral-bg disabled:opacity-50 min-h-11 min-w-11 flex items-center justify-center">
-                        {downloading === inst.paymentId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5 text-muted" />}
+                      <button onClick={() => handleDownloadReceipt(inst.paymentId)} disabled={downloading === inst.paymentId} className="cursor-pointer w-7 h-7 rounded-lg border border-border hover:bg-neutral-surface disabled:opacity-50 flex items-center justify-center">
+                        {downloading === inst.paymentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3 text-muted" />}
                       </button>
                     )}
-                  </div>
+                  </span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="border-t border-border px-4 sm:px-8 py-6">
+            <div className="px-5 py-8 text-center">
               <p className="text-sm text-muted">No recurring payments yet</p>
+              <p className="text-xs text-muted mt-1">Charges start after setup is complete</p>
             </div>
           )}
         </div>

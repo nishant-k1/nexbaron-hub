@@ -29,11 +29,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     const gen = ++refreshGen.current
     const div = division
-    setUser(null)
+    // Do not blank user while ?token= is being verified - avoids flash + preserves plan intent
+    const hasTokenParam = new URLSearchParams(location.search).has("token")
+    if (!hasTokenParam) setUser(null)
     setInitialized(false)
     if (!div) { setInitialized(true); return }
-    const token = getToken(div)
-    if (!token) { if (gen === refreshGen.current) setInitialized(true); return }
     try {
       const data = await apiRequest<{ user: AuthUser }>(`/${div}/auth/me`, {}, div)
       if (gen !== refreshGen.current) return
@@ -62,11 +62,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { void refresh() }, [refresh])
 
   // Auto-login via ?token= in URL (from pricing page signup)
+  // Preserves ?plan=&billing= intent so Plans can auto-open the proposal modal.
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const tokenParam = params.get("token")
     if (tokenParam && division) {
       const div = division
+      const plan = params.get("plan")
+      const billing = params.get("billing")
       // Verify the token by fetching /me
       setToken(tokenParam, div)
       apiRequest<{ user: AuthUser }>(`/${div}/auth/me`, {}, div)
@@ -75,8 +78,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ++refreshGen.current
             setUser(data.user)
             setInitialized(true)
-            // Clean URL
-            navigate(`/${div}`, { replace: true })
+            // Clean token from URL but keep plan intent for DigitalLanding -> Plans auto-modal
+            const qs = new URLSearchParams()
+            if (plan) qs.set("plan", plan)
+            if (billing) qs.set("billing", billing)
+            const target = qs.toString() ? `/${div}?${qs.toString()}` : `/${div}`
+            navigate(target, { replace: true })
           } else {
             setToken(null, div)
           }
@@ -96,9 +103,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(() => {
     if (!division) return
-    setToken(null, division)
+    const div = division
+    setToken(null, div)
     setUser(null)
-    navigate(`/${division}`, { replace: true })
+    // Clear server cookie (best-effort) — with credentials include
+    apiRequest<{ success: boolean }>(`/${div}/auth/sign-out`, { method: "POST" }, div, { silent: true }).catch(() => {})
+    navigate(`/${div}`, { replace: true })
   }, [division, navigate])
 
   const value = useMemo(() => ({

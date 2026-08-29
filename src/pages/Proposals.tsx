@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDivision } from "@/theme/theme-provider";
 import { apiRequest, ApiError, type Division, getApiUrl, getToken } from "@/lib/api";
-import { FileText, CheckCircle2, Clock, ChevronLeft, Check, AlertTriangle, Loader2, CreditCard, Receipt, Filter, X, ArrowRight, Download, ExternalLink } from "lucide-react";
+import { FileText, CheckCircle2, Clock, ChevronLeft, Check, AlertTriangle, Loader2, CreditCard, Receipt, Filter, X, ArrowRight, Download, ExternalLink, Maximize } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
 
@@ -581,6 +581,8 @@ function ProposalDetail({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [showPdfFullscreen, setShowPdfFullscreen] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [hasViewed, setHasViewed] = useState(() => {
     try { return sessionStorage.getItem(`proposal-viewed-${proposal.proposalCode}`) === "1"; } catch { return false; }
   });
@@ -691,6 +693,9 @@ function ProposalDetail({
               <button onClick={handleDownloadPdf} disabled={pdfDownloading} className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-neutral-surface hover:bg-neutral-bg text-xs font-medium disabled:opacity-50">
                 {pdfDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Download
               </button>
+              <button onClick={() => iframeRef.current?.requestFullscreen()} disabled={!pdfUrl} className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-neutral-surface hover:bg-neutral-bg text-xs font-medium disabled:opacity-30">
+                <Maximize className="h-3.5 w-3.5" /> Full screen
+              </button>
             </div>
           </div>
           <div className="bg-white">
@@ -699,7 +704,7 @@ function ProposalDetail({
                 <Loader2 className="h-6 w-6 animate-spin text-muted" />
               </div>
             ) : pdfUrl ? (
-              <iframe src={pdfUrl} title={`Proposal ${proposal.proposalCode}`} className="w-full h-[520px] border-0" />
+              <iframe src={pdfUrl} title={`Proposal ${proposal.proposalCode}`} className="w-full h-[520px] border-0" ref={iframeRef} />
             ) : (
               <div className="h-[320px] flex flex-col items-center justify-center p-6 text-center">
                 <FileText className="h-8 w-8 text-muted mb-2" />

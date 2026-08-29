@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDivision } from "@/theme/theme-provider";
-import { apiRequest, ApiError, type Division } from "@/lib/api";
-import { FileText, CheckCircle2, Clock, ChevronLeft, Check, AlertTriangle, Loader2, CreditCard, Receipt, Filter, X, ArrowRight } from "lucide-react";
+import { apiRequest, ApiError, type Division, getApiUrl, getToken } from "@/lib/api";
+import { FileText, CheckCircle2, Clock, ChevronLeft, Check, AlertTriangle, Loader2, CreditCard, Receipt, Filter, X, ArrowRight, Download, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
 
@@ -152,6 +152,7 @@ export default function Proposals() {
   const [paymentSuccessInvoice, setPaymentSuccessInvoice] = useState<Invoice | null>(null);
   const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
   const [acceptSuccess, setAcceptSuccess] = useState<Proposal | null>(null);
+  const [showPayOptions, setShowPayOptions] = useState(false);
 
   // Filter state: "all" | "pending" | "accepted"
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "accepted">("all");
@@ -223,14 +224,16 @@ export default function Proposals() {
     }
   };
 
-  const pay = async (inv: Invoice) => {
+  const pay = async (inv: Invoice, amount?: number) => {
     if (!division) return;
     setPaying(true);
+    // keep chooser dialog open — show processing inside dialog itself (not on page)
     setError("");
+    const payAmount = amount ?? inv.amount;
     try {
       if (razorpayKeyId) {
         const { order } = await apiRequest<{ success: boolean; order: { id: string; amount: number } }>(
-          `/${division}/billing/invoices/${inv.invoiceNumber}/pay`, { method: "POST" }, division as Division
+          `/${division}/billing/invoices/${inv.invoiceNumber}/pay`, { method: "POST", body: JSON.stringify({ amount: payAmount }) }, division as Division
         );
         const Razorpay = await loadRazorpay();
         const rzp = new Razorpay({
@@ -241,15 +244,22 @@ export default function Proposals() {
           description: inv.invoiceNumber,
           order_id: order.id,
           handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
-            const verifyRes = await apiRequest<{ success: boolean; orderId?: string }>(`/${division}/billing/payments/verify`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ ...response, invoiceNumber: inv.invoiceNumber, amount: inv.amount }),
-            }, division as Division);
-            const fresh = await apiRequest<{ invoice: Invoice }>(`/${division}/proposals/${selectedProposal?.proposalCode}/invoice`, {}, division as Division);
-            setInvoice(fresh.invoice);
-            setPaymentSuccessInvoice(fresh.invoice);
-            if (verifyRes.orderId) setPaymentOrderId(verifyRes.orderId);
+            try {
+              const verifyRes = await apiRequest<{ success: boolean; orderId?: string }>(`/${division}/billing/payments/verify`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...response, invoiceNumber: inv.invoiceNumber, amount: payAmount }),
+              }, division as Division);
+              const fresh = await apiRequest<{ invoice: Invoice }>(`/${division}/proposals/${selectedProposal?.proposalCode}/invoice`, {}, division as Division);
+              setInvoice(fresh.invoice);
+              setShowPayOptions(false);
+              setPaying(false);
+              setPaymentSuccessInvoice(fresh.invoice);
+              if (verifyRes.orderId) setPaymentOrderId(verifyRes.orderId);
+            } catch (e) {
+              setPaying(false);
+              toast.error(e instanceof Error ? e.message : "Payment verification failed");
+            }
           },
           modal: {
             ondismiss: () => setPaying(false),
@@ -260,18 +270,21 @@ export default function Proposals() {
         const verifyRes2 = await apiRequest<{ success: boolean; orderId?: string }>(`/${division}/billing/payments/verify`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ invoiceNumber: inv.invoiceNumber, amount: inv.amount }),
+          body: JSON.stringify({ invoiceNumber: inv.invoiceNumber, amount: payAmount }),
         }, division as Division);
         const fresh = await apiRequest<{ invoice: Invoice }>(`/${division}/proposals/${selectedProposal?.proposalCode}/invoice`, {}, division as Division);
         setInvoice(fresh.invoice);
+        setShowPayOptions(false);
+        setPaying(false);
         setPaymentSuccessInvoice(fresh.invoice);
         if (verifyRes2.orderId) setPaymentOrderId(verifyRes2.orderId);
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Payment failed", { duration: 4000 });
-    } finally {
       setPaying(false);
+      // keep chooser open to retry — don't close on error
     }
+    // for Razorpay flow, keep paying=true until handler/dismiss; no finally reset
   };
 
   return (
@@ -376,7 +389,39 @@ export default function Proposals() {
           invoiceError={invoiceError}
           paying={paying}
           pay={pay}
+          onShowPayOptions={() => setShowPayOptions(true)}
         />
+      )}
+
+      {showPayOptions && invoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => !paying && setShowPayOptions(false)}>
+          <div className="bg-neutral-surface rounded-2xl w-full max-w-md border border-border shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            {paying ? (
+              <div className="py-10 flex flex-col items-center text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-accent" />
+                <p className="mt-4 text-sm font-semibold text-heading">Processing payment…</p>
+                <p className="text-xs text-muted mt-1">Please complete the payment window. Don’t close this dialog.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-base font-semibold text-heading">Choose amount</h3>
+                  <button onClick={() => setShowPayOptions(false)} className="cursor-pointer p-1.5 rounded-xl hover:bg-neutral-bg text-muted"><X className="w-5 h-5" /></button>
+                </div>
+                <p className="text-sm text-muted mb-4">Pay 50% advance or the full amount. Total {inr.format(invoice.amount)}.</p>
+                <div className="space-y-3">
+                  <button onClick={() => pay(invoice, Math.round(invoice.amount / 2))} disabled={paying} className="cursor-pointer w-full p-4 rounded-2xl border border-border bg-neutral-bg hover:border-accent/30 flex items-center justify-between disabled:opacity-50 text-left">
+                    <div><p className="font-medium text-heading text-sm">Pay 50% advance</p><p className="text-xs text-muted mt-0.5">{inr.format(Math.round(invoice.amount / 2))} now · remaining {inr.format(invoice.amount - Math.round(invoice.amount / 2))} later</p></div><ArrowRight className="h-5 w-5 text-muted" />
+                  </button>
+                  <button onClick={() => pay(invoice, invoice.amount)} disabled={paying} className="cursor-pointer w-full p-4 rounded-2xl bg-accent text-accent-fg flex items-center justify-between disabled:opacity-50 text-left">
+                    <div><p className="font-semibold text-sm">Pay full amount</p><p className="text-xs text-accent-fg/70 mt-0.5">{inr.format(invoice.amount)}</p></div><ArrowRight className="h-5 w-5" />
+                  </button>
+                </div>
+                <button onClick={() => setShowPayOptions(false)} className="cursor-pointer w-full mt-3 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-neutral-bg">Cancel</button>
+              </>
+            )}
+          </div>
+        </div>
       )}
 
       {(acceptSuccess || paymentSuccessInvoice) && (
@@ -472,16 +517,14 @@ export default function Proposals() {
                     onClick={() => {
                       const inv = invoice;
                       if (inv && inv.status === "PENDING") {
-                        pay(inv);
+                        setAcceptSuccess(null);
+                        setShowPayOptions(true);
                       } else {
-                        // Keep dialog open while invoice loads, then transition to payment stage
                         if (invoiceLoading) return;
                         setTimeout(() => {
                           const el = document.getElementById("invoice-section");
                           if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
                         }, 100);
-                        // Don't close — let pay() transition in-place when invoice ready
-                        // For now, close and show pay button
                         setAcceptSuccess(null);
                       }
                     }}
@@ -512,6 +555,7 @@ function ProposalDetail({
   invoiceError,
   paying,
   pay,
+  onShowPayOptions,
 }: {
   proposal: Proposal;
   agreed: boolean;
@@ -523,7 +567,8 @@ function ProposalDetail({
   invoiceLoading: boolean;
   invoiceError: string;
   paying: boolean;
-  pay: (inv: Invoice) => void;
+  pay: (inv: Invoice, amount?: number) => void;
+  onShowPayOptions: () => void;
 }) {
   const displayStatus = getProposalDisplayStatus(proposal);
   const meta = STATUS_META_EXTENDED[displayStatus];
@@ -531,6 +576,86 @@ function ProposalDetail({
   const p = proposal.pricing;
 
   const showInvoiceSection = proposal.status === "ACCEPTED";
+  const hookDivision = (() => { try { return useDivision(); } catch { return "digital" as Division; } })();
+  const pdfDivision: Division = hookDivision || (proposal.proposalCode.startsWith("PRP") ? ("digital" as Division) : ("digital" as Division));
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [hasViewed, setHasViewed] = useState(() => {
+    try { return sessionStorage.getItem(`proposal-viewed-${proposal.proposalCode}`) === "1"; } catch { return false; }
+  });
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setPdfLoading(true);
+    const token = getToken(pdfDivision);
+    if (!token) { setPdfLoading(false); return; }
+    fetch(`${getApiUrl(pdfDivision)}/${pdfDivision}/proposals/${encodeURIComponent(proposal.proposalCode)}/pdf`, {
+      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load PDF");
+        return r.blob();
+      })
+      .then((blob) => {
+        if (!active) return;
+        const url = URL.createObjectURL(blob);
+        setPdfUrl(url);
+      })
+      .catch(() => {})
+      .finally(() => { if (active) setPdfLoading(false); });
+    return () => { active = false; };
+  }, [proposal.proposalCode, pdfDivision]);
+
+  useEffect(() => {
+    return () => { if (pdfUrl) URL.revokeObjectURL(pdfUrl); };
+  }, [pdfUrl]);
+
+  useEffect(() => {
+    if (hasViewed || proposal.status !== "SENT") return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setHasViewed(true);
+          try { sessionStorage.setItem(`proposal-viewed-${proposal.proposalCode}`, "1"); } catch {}
+        }
+      },
+      { threshold: 0.1 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasViewed, proposal.status, proposal.proposalCode]);
+
+  const handleDownloadPdf = async () => {
+    const token = getToken(pdfDivision);
+    if (!token) { toast.error("Not authenticated"); return; }
+    setPdfDownloading(true);
+    try {
+      const res = await fetch(`${getApiUrl(pdfDivision)}/${pdfDivision}/proposals/${encodeURIComponent(proposal.proposalCode)}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `proposal-${proposal.proposalCode}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Proposal downloaded");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Download failed");
+    } finally {
+      setPdfDownloading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -551,50 +676,51 @@ function ProposalDetail({
 
         {proposal.description && <p className="text-sm text-body mt-3">{proposal.description}</p>}
 
-        <div className="mt-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-2">What's included</p>
-          {proposal.services.length === 0 ? (
-            <p className="text-sm text-muted">No services listed.</p>
-          ) : (
-            <ul className="space-y-2">
-              {proposal.services.map((s) => (
-                <li key={s.serviceCode} className="rounded-xl border border-border bg-neutral-bg px-3 py-2.5">
-                  <p className="text-sm font-medium text-heading">{s.name}</p>
-                  {s.description && <p className="text-xs text-muted mt-0.5">{s.description}</p>}
-                </li>
-              ))}
-            </ul>
+        {/* Proposal PDF — server-generated, per-plan template */}
+        <div className="mt-5 rounded-2xl border border-border overflow-hidden bg-neutral-bg">
+          <div className="flex items-center justify-between px-4 py-3 bg-neutral-surface border-b border-border">
+            <div className="flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-muted" />
+              <span className="text-sm font-semibold text-heading">Proposal PDF</span>
+              <span className="text-xs text-muted hidden sm:inline">· {proposal.proposalCode} · 2–3 pages</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => pdfUrl && window.open(pdfUrl, "_blank", "noopener,noreferrer")} disabled={!pdfUrl} className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-neutral-surface hover:bg-neutral-bg text-xs font-medium disabled:opacity-30">
+                <ExternalLink className="h-3.5 w-3.5" /> Open in new tab
+              </button>
+              <button onClick={handleDownloadPdf} disabled={pdfDownloading} className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-neutral-surface hover:bg-neutral-bg text-xs font-medium disabled:opacity-50">
+                {pdfDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Download
+              </button>
+            </div>
+          </div>
+          <div className="bg-white">
+            {pdfLoading ? (
+              <div className="h-[480px] flex items-center justify-center bg-neutral-bg">
+                <Loader2 className="h-6 w-6 animate-spin text-muted" />
+              </div>
+            ) : pdfUrl ? (
+              <iframe src={pdfUrl} title={`Proposal ${proposal.proposalCode}`} className="w-full h-[520px] border-0" />
+            ) : (
+              <div className="h-[320px] flex flex-col items-center justify-center p-6 text-center">
+                <FileText className="h-8 w-8 text-muted mb-2" />
+                <p className="text-sm text-muted">PDF preview unavailable</p>
+                <p className="text-xs text-muted mt-1">You can still download the proposal below</p>
+              </div>
+            )}
+          </div>
+          {proposal.status === "SENT" && !hasViewed && (
+            <div className="px-4 py-2.5 bg-amber-500/10 border-t border-amber-500/20 text-xs text-amber-700 flex items-center gap-2">
+              <Clock className="h-3.5 w-3.5 shrink-0" /> Scroll to the bottom to unlock acceptance — payment available after you’ve reviewed the full proposal
+            </div>
+          )}
+          {proposal.status === "SENT" && hasViewed && (
+            <div className="px-4 py-2.5 bg-emerald-500/10 border-t border-emerald-500/20 text-xs text-emerald-700 flex items-center gap-2">
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> You’ve reviewed the proposal — you can now accept below
+            </div>
           )}
         </div>
 
-        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-          <div className="rounded-xl border border-border bg-neutral-bg p-3 sm:p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-1">One-time</p>
-            {p.oneTimeEnabled ? (
-              <p className="text-sm text-heading break-words">
-                {inr.format(p.oneTimeFee || 0)}
-                {p.paymentSchedule ? ` · ${SCHEDULE_LABELS[p.paymentSchedule] || p.paymentSchedule}` : ""}
-              </p>
-            ) : (
-              <p className="text-sm text-muted">Not included</p>
-            )}
-          </div>
-          <div className="rounded-xl border border-border bg-neutral-bg p-3 sm:p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-1">Recurring</p>
-            {p.recurringEnabled ? (
-              <p className="text-sm text-heading break-words">
-                {inr.format(p.recurringFee || 0)} / {FREQUENCY_LABELS[p.recurringFrequency || ""] || p.recurringFrequency || "—"}
-              </p>
-            ) : (
-              <p className="text-sm text-muted">Not included</p>
-            )}
-          </div>
-        </div>
 
-        <div className="mt-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-2">Terms & conditions</p>
-          <p className="text-sm text-body whitespace-pre-wrap">{proposal.terms || "No specific terms provided."}</p>
-        </div>
 
         {proposal.status === "DRAFT" && (
           <div className="mt-5 rounded-xl border border-border bg-neutral-bg p-4 text-sm text-muted">
@@ -606,6 +732,7 @@ function ProposalDetail({
           <p className="text-xs text-muted mt-3">Accepted on {dateTimeFmt(proposal.acceptedAt)}</p>
         )}
 
+        <div ref={sentinelRef} className="h-1" aria-hidden />
         {proposal.status === "SENT" && (
           <div className="mt-6 border-t border-border pt-5">
             <label className="flex items-start gap-3 cursor-pointer text-sm text-body">
@@ -617,10 +744,12 @@ function ProposalDetail({
               />
               <span>I have read and agree to the terms and conditions above.</span>
             </label>
+            {!hasViewed && <p className="text-xs text-amber-600 mt-2">Please scroll to the bottom and view the PDF to unlock acceptance.</p>}
             <div className="mt-4 flex justify-end">
               <button
                 onClick={onAccept}
-                disabled={!agreed || accepting}
+                disabled={!agreed || !hasViewed || accepting}
+                title={!hasViewed ? "Scroll to review the full proposal first" : undefined}
                 className="cursor-pointer px-5 py-2.5 bg-accent text-accent-fg rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
               >
                 {accepting ? "Submitting…" : "Accept proposal"}
@@ -707,7 +836,7 @@ function ProposalDetail({
                   <span className="text-lg font-bold text-heading">{inr.format(invoice.amount)}</span>
                   {invoice.status === "PENDING" && (
                     <button
-                      onClick={() => pay(invoice)}
+                      onClick={() => onShowPayOptions()}
                       disabled={paying}
                       className="cursor-pointer px-5 py-2.5 bg-accent text-accent-fg rounded-xl text-sm font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity flex items-center gap-2"
                     >

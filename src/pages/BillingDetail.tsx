@@ -326,28 +326,32 @@ export default function BillingDetail() {
                   <button onClick={async () => { setPaymentSuccess(false); setShowPaymentOptions(false); try { const data = await apiRequest<{ orders: Array<{ _id: string; invoiceNumber?: string }> }>(`/${division}/orders`, {}, division as Division); const order = data.orders.find((o) => o.invoiceNumber === invoice.invoiceNumber); if (order) navigate(`/${division}/orders/${order._id}`); else navigate(`/${division}/orders`); } catch { navigate(`/${division}/orders`); } }} className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-xl hover:opacity-90">View order <ArrowRight className="w-4 h-4" /></button>
                 </div>
               </>
+            ) : paying ? (
+              <div className="py-10 flex flex-col items-center text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-accent" />
+                <p className="mt-4 text-sm font-semibold text-heading">Processing payment…</p>
+                <p className="text-xs text-muted mt-1">Please complete the payment window. Don’t close this dialog.</p>
+              </div>
             ) : (
               <>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-base font-semibold text-heading">Choose amount</h3>
-                  <button onClick={() => setShowPaymentOptions(false)} disabled={paying} className="cursor-pointer p-1.5 rounded-xl hover:bg-neutral-bg text-muted"><X className="w-5 h-5" /></button>
+                  <button onClick={() => setShowPaymentOptions(false)} className="cursor-pointer p-1.5 rounded-xl hover:bg-neutral-bg text-muted"><X className="w-5 h-5" /></button>
                 </div>
-                <p className="text-sm text-muted mb-4">{invoice.paymentSchedule === "FIFTY_FIFTY" ? "Pay 50% now or the full amount." : "Pay the full amount."} Total {inr.format(invoice.amount)}.</p>
+                <p className="text-sm text-muted mb-4">Pay 50% advance or the full amount. Total {inr.format(invoice.amount)}.</p>
                 <div className="rounded-xl bg-neutral-bg border border-border divide-y divide-border/60 mb-4 overflow-hidden">
                   <div className="flex justify-between px-4 py-2.5"><span className="text-xs text-muted">Paid</span><span className="text-sm font-medium text-heading">{inr.format(summary.totalPaid)}</span></div>
                   <div className="flex justify-between px-4 py-2.5"><span className="text-xs text-muted">Due</span><span className="text-sm font-bold text-heading">{inr.format(amountDue)}</span></div>
                 </div>
                 <div className="space-y-3">
-                  {invoice.paymentSchedule === "FIFTY_FIFTY" && (
-                    <button onClick={() => pay(invoice, Math.round(invoice.amount / 2))} disabled={paying} className="cursor-pointer w-full p-4 rounded-2xl border border-border bg-neutral-bg hover:border-accent/30 flex items-center justify-between disabled:opacity-50 text-left">
-                      <div><p className="font-medium text-heading text-sm">Pay 50% advance</p><p className="text-xs text-muted mt-0.5">{inr.format(Math.round(invoice.amount / 2))} now</p></div><ArrowRight className="h-5 w-5 text-muted" />
-                    </button>
-                  )}
-                  <button onClick={() => pay(invoice, invoice.amount)} disabled={paying} className="cursor-pointer w-full p-4 rounded-2xl bg-accent text-accent-fg flex items-center justify-between disabled:opacity-50 text-left">
-                    <div><p className="font-semibold text-sm">Pay full amount</p><p className="text-xs text-accent-fg/70 mt-0.5">{inr.format(invoice.amount)}</p></div><ArrowRight className="h-5 w-5" />
+                  <button onClick={() => pay(invoice, Math.round(amountDue / 2) || Math.round(invoice.amount / 2))} className="cursor-pointer w-full p-4 rounded-2xl border border-border bg-neutral-bg hover:border-accent/30 flex items-center justify-between text-left">
+                    <div><p className="font-medium text-heading text-sm">Pay 50% advance</p><p className="text-xs text-muted mt-0.5">{inr.format(Math.round(amountDue / 2) || Math.round(invoice.amount / 2))} now · remaining {inr.format(amountDue - (Math.round(amountDue / 2) || Math.round(invoice.amount / 2)))} later</p></div><ArrowRight className="h-5 w-5 text-muted" />
+                  </button>
+                  <button onClick={() => pay(invoice, amountDue)} className="cursor-pointer w-full p-4 rounded-2xl bg-accent text-accent-fg flex items-center justify-between text-left">
+                    <div><p className="font-semibold text-sm">Pay full amount</p><p className="text-xs text-accent-fg/70 mt-0.5">{inr.format(amountDue)}</p></div><ArrowRight className="h-5 w-5" />
                   </button>
                 </div>
-                <button onClick={() => setShowPaymentOptions(false)} disabled={paying} className="cursor-pointer w-full mt-3 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-neutral-bg disabled:opacity-50">Cancel</button>
+                <button onClick={() => setShowPaymentOptions(false)} className="cursor-pointer w-full mt-3 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-neutral-bg">Cancel</button>
               </>
             )}
           </div>

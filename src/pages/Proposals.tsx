@@ -184,6 +184,14 @@ export default function Proposals() {
 
   useEffect(() => { setAgreed(false); load(); }, [load]);
 
+  // Scroll to detail view when a proposal is selected from URL
+  useEffect(() => {
+    if (selectedProposal) {
+      const el = document.getElementById("proposal-detail");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [selectedProposal]);
+
   // Fetch invoice when an ACCEPTED proposal is selected
   useEffect(() => {
     if (!division || !selectedProposal || selectedProposal.status !== "ACCEPTED") {
@@ -222,6 +230,7 @@ export default function Proposals() {
       setStatusFilter("all");
       const accepted = proposals.find((p) => p.proposalCode === code) || null;
       if (accepted) setAcceptSuccess(accepted);
+      navigate(`/${division}/proposals?proposal=${encodeURIComponent(code)}`, { replace: true });
       load();
     } catch (e) {
       toast.error(friendlyAcceptError(e), { duration: 4000 });
@@ -687,7 +696,7 @@ function ProposalDetail({
   };
 
   return (
-    <div className="space-y-6">
+    <div id="proposal-detail" className="space-y-6">
           <button onClick={onBack} className="cursor-pointer inline-flex items-center gap-1.5 text-sm text-muted hover:text-heading transition-colors">
         <ChevronLeft className="h-4 w-4" /> Back to proposals
       </button>

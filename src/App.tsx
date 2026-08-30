@@ -62,7 +62,7 @@ function HubRoutes() {
           <>
             <Route path="plans" element={<ErrorBoundary name="Plans"><Plans /></ErrorBoundary>} />
             <Route path="packages" element={<Navigate to="plans" replace />} />
-            <Route path="proposals" element={<ErrorBoundary name="Proposals"><Proposals /></ErrorBoundary>} />
+            <Route path="proposals/:proposalCode" element={<ErrorBoundary name="Proposals"><Proposals /></ErrorBoundary>} />
             <Route path="billing" element={<ErrorBoundary name="Billing"><Billing /></ErrorBoundary>} />
             <Route path="billing/:invoiceNumber" element={<ErrorBoundary name="BillingDetail"><BillingDetail /></ErrorBoundary>} />
             <Route path="orders" element={<ErrorBoundary name="Orders"><Orders /></ErrorBoundary>} />

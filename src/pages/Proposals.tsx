@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useDivision } from "@/theme/theme-provider";
 import { apiRequest, ApiError, type Division, getApiUrl, getToken } from "@/lib/api";
 import { useEntityLabels } from "@/lib/metadata";
@@ -144,7 +144,8 @@ export default function Proposals() {
   const [error, setError] = useState("");
 
   const urlProposal = searchParams.get("proposal");
-  const [selected, setSelected] = useState<string | null>(urlProposal);
+  const { proposalCode: routeProposalCode } = useParams<{ proposalCode?: string }>();
+  const [selected, setSelected] = useState<string | null>(urlProposal ?? routeProposalCode ?? "");
   const [agreed, setAgreed] = useState(false);
   const [accepting, setAccepting] = useState(false);
 
@@ -192,6 +193,13 @@ export default function Proposals() {
       setSelected(proposal);
     }
   }, [location.search]);
+
+  // Sync selected with :proposalCode route param on navigation
+  useEffect(() => {
+    if (routeProposalCode) {
+      setSelected(routeProposalCode);
+    }
+  }, [routeProposalCode]);
 
   // Ensure selected is set from URL on initial mount (belt-and-suspenders)
   useEffect(() => {
@@ -388,8 +396,8 @@ export default function Proposals() {
                     key={p._id}
                     role="button"
                     tabIndex={0}
-                    onClick={() => { setSelected(p.proposalCode); setAgreed(false); }}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setSelected(p.proposalCode); setAgreed(false); } }}
+                    onClick={() => { navigate(`/${division}/proposals/${p.proposalCode}`); setSelected(p.proposalCode); setAgreed(false); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { navigate(`/${division}/proposals/${p.proposalCode}`); setSelected(p.proposalCode); setAgreed(false); } }}
                     className="group rounded-2xl bg-neutral-surface border border-border p-4 sm:p-5 cursor-pointer hover:border-accent/30 transition-all duration-300"
                   >
                     <div className="flex items-center justify-between gap-3 sm:gap-4">

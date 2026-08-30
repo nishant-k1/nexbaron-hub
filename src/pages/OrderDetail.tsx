@@ -153,7 +153,7 @@ export default function OrderDetail() {
 
   const handleProposalDetails = () => {
     if (!order?.proposalCode) return;
-    navigate(`/${division}/proposals?proposal=${encodeURIComponent(order.proposalCode)}`);
+    navigate(`/${division}/proposals/${order.proposalCode}`);
   };
 
   if (!id) return null;

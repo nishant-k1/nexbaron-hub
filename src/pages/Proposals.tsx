@@ -218,6 +218,8 @@ export default function Proposals() {
     try {
       await apiRequest(`/${division}/proposals/${code}/accept`, { method: "POST", body: JSON.stringify({ accept: true }) }, division as Division);
       setAgreed(false);
+      setSelected(code);
+      setStatusFilter("all");
       const accepted = proposals.find((p) => p.proposalCode === code) || null;
       if (accepted) setAcceptSuccess(accepted);
       load();
@@ -271,6 +273,11 @@ export default function Proposals() {
         });
         rzp.open();
       } else {
+        // Dev fallback: Razorpay not configured — simulate payment
+        if (!window.confirm("Razorpay is not configured in dev mode. Simulate payment as PAID?")) {
+          setPaying(false);
+          return;
+        }
         const verifyRes2 = await apiRequest<{ success: boolean; orderId?: string }>(`/${division}/billing/payments/verify`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -411,7 +418,7 @@ export default function Proposals() {
               <div className="py-10 flex flex-col items-center text-center">
                 <Loader2 className="w-8 h-8 animate-spin text-accent" />
                 <p className="mt-4 text-sm font-semibold text-heading">Processing payment…</p>
-                <p className="text-xs text-muted mt-1">Please complete the payment window. Don’t close this dialog.</p>
+                <p className="text-xs text-muted mt-1">Please complete the payment window. Don't close this dialog.</p>
               </div>
             ) : (
               <>
@@ -419,6 +426,11 @@ export default function Proposals() {
                   <h3 className="text-base font-semibold text-heading">Choose amount</h3>
                   <button onClick={() => setShowPayOptions(false)} className="cursor-pointer p-1.5 rounded-xl hover:bg-neutral-bg text-muted"><X className="w-5 h-5" /></button>
                 </div>
+                {!razorpayKeyId && (
+                  <div className="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
+                    Dev mode — Razorpay is not configured. Payment will be simulated (no real money collected).
+                  </div>
+                )}
                 <p className="text-sm text-muted mb-4">Pay 50% advance or the full amount. Total {inr.format(invoice.amount)}.</p>
                 <div className="space-y-3">
                   <button onClick={() => pay(invoice, Math.round(invoice.amount / 2))} disabled={paying} className="cursor-pointer w-full p-4 rounded-2xl border border-border bg-neutral-bg hover:border-accent/30 flex items-center justify-between disabled:opacity-50 text-left">

@@ -251,10 +251,12 @@ export default function BillingDetail() {
               <p className="text-xs text-muted mt-1">{inr.format(summary.recurringTotal)}/mo · <span className="text-heading font-medium">{inr.format(summary.recurringPaid)} paid</span> · {inr.format(summary.recurringDue)} due</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${summary.recurringStatus.tone === "success" ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/20" : summary.recurringStatus.tone === "warning" ? "bg-amber-500/15 text-amber-600 border-amber-500/20" : "bg-neutral-bg text-muted border-border"}`}>
-                {summary.recurringStatus.tone === "success" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
-                {billingStatusLabel(summary.recurringStatus, inr)}
-              </span>
+              {summary.recurringStatus && (
+                <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${summary.recurringStatus.tone === "success" ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/20" : summary.recurringStatus.tone === "warning" ? "bg-amber-500/15 text-amber-600 border-amber-500/20" : "bg-neutral-bg text-muted border-border"}`}>
+                  {summary.recurringStatus.tone === "success" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
+                  {billingStatusLabel(summary.recurringStatus, inr)}
+                </span>
+              )}
               <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-neutral-surface border border-border text-muted">{paidInstallments.length} paid</span>
             </div>
           </div>

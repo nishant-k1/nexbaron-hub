@@ -20,7 +20,7 @@ export interface BillingView {
   paidPercent: number;
   displayStatus: BillingStatusChip & { phase: string };
   oneTimeStatus: BillingStatusChip & { dueAmount: number };
-  recurringStatus: BillingStatusChip & { dueAmount: number };
+  recurringStatus: (BillingStatusChip & { dueAmount: number }) | null;
   recurringNote: string;
   oneTimeItems: Array<{ label: string; amount: number; type: string }>;
   recurringItems: Array<{ label: string; amount: number; type: string }>;

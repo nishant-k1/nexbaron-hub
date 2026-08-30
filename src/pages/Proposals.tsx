@@ -690,7 +690,7 @@ function ProposalDetail({
         {proposal.description && <p className="text-sm text-body mt-3">{proposal.description}</p>}
 
         {/* Proposal PDF — server-generated, per-plan template */}
-        <div className="mt-5 rounded-2xl border border-border overflow-hidden bg-neutral-bg">
+        <div className="mt-5 rounded-2xl border border-border bg-neutral-bg">
           <div className="flex items-center justify-between px-4 py-3 bg-neutral-surface border-b border-border">
             <div className="flex items-center gap-2">
               <Receipt className="h-4 w-4 text-muted" />

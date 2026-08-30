@@ -1,12 +1,10 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useDivision } from "@/theme/theme-provider";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { apiRequest, type Division, getApiUrl, getToken } from "@/lib/api";
-import { useEntityLabels } from "@/lib/metadata";
-import { Receipt, CheckCircle2, Clock, AlertTriangle, Download, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { apiRequest, type Division } from "@/lib/api";
+import { Receipt } from "lucide-react";
 import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
-import { BILLING_TONE_CLS, type BillingView } from "@/lib/billing";
+import { type BillingView } from "@/lib/billing";
 
 declare global {
   interface Window { Razorpay: any }
@@ -48,53 +46,22 @@ const inr = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 0,
 });
 
-const INVOICE_STATUS_CLS: Record<string, string> = {
-  DRAFT: "bg-neutral-bg text-muted",
-  PENDING: "bg-amber-500/15 text-amber-600",
-  PAID: "bg-emerald-500/15 text-emerald-600",
-  FAILED: "bg-red-500/15 text-red-600",
-  CANCELLED: "bg-neutral-bg text-muted",
-};
-
-const INVOICE_STATUS_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
-  DRAFT: Clock,
-  PENDING: Clock,
-  PAID: CheckCircle2,
-  FAILED: AlertTriangle,
-  CANCELLED: AlertTriangle,
-};
-
-function loadRazorpay(): Promise<typeof window.Razorpay> {
-  return new Promise((resolve, reject) => {
-    if (typeof window !== "undefined" && window.Razorpay) return resolve(window.Razorpay);
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(window.Razorpay);
-    script.onerror = () => reject(new Error("Could not load payment gateway"));
-    document.body.appendChild(script);
-  });
-}
-
 export default function Billing() {
   const division = useDivision();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const invoiceLabels = useEntityLabels("invoice");
   const targetInvoice = searchParams.get("invoice");
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [keyId, setKeyId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [paying, setPaying] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState<string | null>(null);
   const [highlightedInvoice, setHighlightedInvoice] = useState<string | null>(targetInvoice);
   const invoiceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   const load = useCallback(() => {
     if (!division) return;
     setLoading(true);
-    apiRequest<{ invoices: Invoice[]; razorpayKeyId?: string }>(`/${division}/billing/invoices`, {}, division as Division)
-      .then((d) => { setInvoices(d.invoices || []); setKeyId(d.razorpayKeyId ?? ""); setError(""); })
+    apiRequest<{ invoices: Invoice[] }>(`/${division}/billing/invoices`, {}, division as Division)
+      .then((d) => { setInvoices(d.invoices || []); setError(""); })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load invoices"))
       .finally(() => setLoading(false));
   }, [division]);
@@ -113,88 +80,6 @@ export default function Billing() {
       }, 100);
     }
   }, [targetInvoice, invoices]);
-
-  const pay = async (inv: Invoice) => {
-    if (!division) return;
-    setPaying(inv.invoiceNumber);
-    setError("");
-    try {
-      if (keyId) {
-        const { order } = await apiRequest<{ success: boolean; order: { id: string; amount: number } }>(
-          `/${division}/billing/invoices/${inv.invoiceNumber}/pay`, { method: "POST" }, division as Division
-        );
-        const Razorpay = await loadRazorpay();
-        const rzp = new Razorpay({
-          key: keyId,
-          amount: order.amount,
-          currency: inv.currency || "INR",
-          name: "Nexbaron",
-          description: inv.invoiceNumber,
-          order_id: order.id,
-          handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
-            await apiRequest(`/${division}/billing/payments/verify`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ ...response, invoiceNumber: inv.invoiceNumber }),
-            }, division as Division);
-            toast.success("Payment successful — thank you!", { duration: 4000 });
-            load();
-          },
-          modal: {
-            ondismiss: () => setPaying(null),
-          },
-        });
-        rzp.open();
-      } else {
-        await apiRequest(`/${division}/billing/payments/verify`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ invoiceNumber: inv.invoiceNumber }),
-        }, division as Division);
-        toast.success("Payment marked as paid (dev mode).", { duration: 3000 });
-        load();
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Payment failed", { duration: 4000 });
-    } finally {
-      setPaying(null);
-    }
-  };
-
-  const handleDownloadReceipt = async (inv: Invoice, e?: React.MouseEvent) => {
-    if (e) { e.stopPropagation(); e.preventDefault(); }
-    if (!division) return;
-    const hasPaid = inv.payments?.some(p => p.status === "SUCCESS");
-    if (!hasPaid && inv.status !== "PAID") {
-      toast.error("No paid amount to generate receipt");
-      return;
-    }
-    setDownloading(inv.invoiceNumber);
-    try {
-      const token = getToken(division);
-      if (!token) throw new Error("Not authenticated");
-      const url = `${getApiUrl(division)}/${division}/billing/invoices/${encodeURIComponent(inv.invoiceNumber)}/receipt?format=pdf`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: "application/pdf" } });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `Failed to download receipt (${res.status})`);
-      }
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = `receipt-${inv.invoiceNumber}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(blobUrl);
-      toast.success("Receipt downloaded");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to download receipt");
-    } finally {
-      setDownloading(null);
-    }
-  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
@@ -237,11 +122,8 @@ export default function Billing() {
       ) : (
         <div className="space-y-3">
           {invoices.map((inv) => {
-            const display = inv.summary?.displayStatus;
-            const fallbackLabel = invoiceLabels[inv.status] || inv.status;
-            const statusLabel = display?.label ?? fallbackLabel;
-            const statusCls = display ? BILLING_TONE_CLS[display.tone] : INVOICE_STATUS_CLS[inv.status] || "bg-neutral-bg text-muted";
-            const Icon = display?.tone === "success" ? CheckCircle2 : display?.tone === "danger" ? AlertTriangle : INVOICE_STATUS_ICON[inv.status] || Clock;
+            const oneTime = inv.summary?.oneTimeTotal ?? 0;
+            const recurring = inv.summary?.recurringTotal ?? 0;
             return (
               <div
                 ref={(el) => { if (el) invoiceRefs.current.set(inv.invoiceNumber, el); }}
@@ -252,7 +134,7 @@ export default function Billing() {
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(`/${division}/billing/${encodeURIComponent(inv.invoiceNumber)}`); }}
                 className={`group rounded-2xl bg-neutral-surface border border-border p-4 sm:p-5 hover:border-accent/30 transition-all duration-300 cursor-pointer ${highlightedInvoice === inv.invoiceNumber ? "ring-2 ring-accent/40" : ""}`}
               >
-                <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+                <div className="flex items-center justify-between gap-3 sm:gap-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
                       <Receipt className="h-4.5 w-4.5" />
@@ -266,39 +148,36 @@ export default function Billing() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
-                    <span className="hidden sm:block text-base font-bold text-heading">{inr.format(inv.amount)}</span>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${statusCls}`}>
-                      <Icon className="h-3.5 w-3.5" /> {statusLabel}
-                    </span>
-                    {(inv.status === "PAID" || inv.payments?.some(p => p.status === "SUCCESS")) && (
-                      <button
-                        onClick={(e) => handleDownloadReceipt(inv, e)}
-                        disabled={downloading === inv.invoiceNumber}
-                        className="cursor-pointer hidden sm:inline-flex items-center gap-1 px-3 py-2 rounded-full border border-border bg-neutral-surface hover:bg-neutral-bg text-xs font-medium disabled:opacity-50 min-h-11"
-                        title="Download receipt"
-                      >
-                        {downloading === inv.invoiceNumber ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                        Receipt
-                      </button>
-                    )}
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-right hidden sm:block">
+                      <p className="text-sm font-bold text-heading">{inr.format(inv.amount)}</p>
+                      <p className="text-[11px] text-muted">
+                        {oneTime > 0 && recurring > 0
+                          ? `${inr.format(oneTime)} setup · ${inr.format(recurring)}/mo`
+                          : oneTime > 0
+                            ? `${inr.format(oneTime)} one-time`
+                            : recurring > 0
+                              ? `${inr.format(recurring)}/mo`
+                              : ""}
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted group-hover:text-accent">→</span>
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-2 sm:hidden">
-                  <span className="text-base font-bold text-heading">{inr.format(inv.amount)}</span>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {(inv.status === "PAID" || inv.payments?.some(p => p.status === "SUCCESS")) && (
-                      <button
-                        onClick={(e) => handleDownloadReceipt(inv, e)}
-                        disabled={downloading === inv.invoiceNumber}
-                        className="cursor-pointer inline-flex items-center gap-1 px-3 py-2 rounded-full border border-border bg-neutral-surface text-xs font-medium disabled:opacity-50 min-h-11"
-                      >
-                        {downloading === inv.invoiceNumber ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-                        Receipt
-                      </button>
-                    )}
-                    <span className="text-xs text-muted group-hover:text-accent">→</span>
+                  <div>
+                    <span className="text-base font-bold text-heading">{inr.format(inv.amount)}</span>
+                    <p className="text-[11px] text-muted">
+                      {oneTime > 0 && recurring > 0
+                        ? `${inr.format(oneTime)} setup · ${inr.format(recurring)}/mo`
+                        : oneTime > 0
+                          ? `${inr.format(oneTime)} one-time`
+                          : recurring > 0
+                            ? `${inr.format(recurring)}/mo`
+                            : ""}
+                    </p>
                   </div>
+                  <span className="text-xs text-muted group-hover:text-accent">→</span>
                 </div>
               </div>
             );

@@ -682,9 +682,6 @@ function ProposalDetail({
             <h2 className="text-lg sm:text-xl font-bold text-heading break-words">{proposal.title}</h2>
             <p className="text-xs text-muted mt-1 break-all">{proposal.proposalCode} · Package {proposal.packageId} · Version {proposal.version}</p>
           </div>
-          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${cls}`}>
-            <Icon className="h-3.5 w-3.5" /> {label}
-          </span>
         </div>
 
         {proposal.description && <p className="text-sm text-body mt-3">{proposal.description}</p>}

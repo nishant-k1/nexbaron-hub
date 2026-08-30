@@ -202,23 +202,26 @@ export default function Orders() {
                 key={order._id}
                 role="button"
                 tabIndex={0}
-                className="group rounded-2xl bg-neutral-surface border border-border p-4 sm:p-5 cursor-pointer hover:border-accent/30 transition-colors"
+                className="group rounded-2xl bg-neutral-surface border border-border p-4 sm:p-5 cursor-pointer hover:border-accent/30 transition-all duration-300"
                 onClick={() => handleViewOrder(order._id)}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleViewOrder(order._id); }}
               >
                 <div className="flex items-center justify-between gap-3 sm:gap-4">
-                  <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
                       <Package className="h-4.5 w-4.5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-heading truncate">{order.planLabel || order.service || "Order"}</p>
-                      <p className="text-xs text-muted">{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+                      <p className="font-semibold text-heading truncate text-sm">{order.planLabel || order.service || "Order"}</p>
+                      <p className="text-xs text-muted font-mono truncate">{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
                     </div>
                   </div>
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>
-                    <Icon className="h-3.5 w-3.5" /> {label}
-                  </span>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className={`hidden sm:inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>
+                      <Icon className="h-3.5 w-3.5" /> {label}
+                    </span>
+                    <span className="text-xs text-muted group-hover:text-accent">→</span>
+                  </div>
                 </div>
               </div>
             );

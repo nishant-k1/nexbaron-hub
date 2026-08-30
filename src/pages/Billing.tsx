@@ -38,6 +38,7 @@ interface Invoice {
   createdAt: string;
   packageId?: string;
   proposalCode?: string;
+  planLabel?: string;
   summary?: BillingView;
 }
 
@@ -257,9 +258,9 @@ export default function Billing() {
                       <Receipt className="h-4.5 w-4.5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-heading truncate font-mono text-sm">{inv.invoiceNumber}</p>
-                      <p className="text-xs text-muted truncate">
-                        {new Date(inv.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                      <p className="font-semibold text-heading truncate text-sm">{inv.planLabel || inv.packageId || inv.invoiceNumber}</p>
+                      <p className="text-xs text-muted truncate font-mono">
+                        {inv.invoiceNumber}
                         {inv.dueDate ? ` · Due ${new Date(inv.dueDate).toLocaleDateString("en-IN")}` : ""}
                         {inv.proposalCode ? ` · ${inv.proposalCode}` : ""}
                       </p>

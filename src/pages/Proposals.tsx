@@ -230,7 +230,6 @@ export default function Proposals() {
       setStatusFilter("all");
       const accepted = proposals.find((p) => p.proposalCode === code) || null;
       if (accepted) setAcceptSuccess(accepted);
-      navigate(`/${division}/proposals?proposal=${encodeURIComponent(code)}`, { replace: true });
       load();
     } catch (e) {
       toast.error(friendlyAcceptError(e), { duration: 4000 });

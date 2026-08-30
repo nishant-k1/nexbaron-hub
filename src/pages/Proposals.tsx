@@ -184,6 +184,14 @@ export default function Proposals() {
 
   useEffect(() => { setAgreed(false); load(); }, [load]);
 
+  // Sync selected with ?proposal= URL param on mount and navigation
+  useEffect(() => {
+    const proposal = searchParams.get("proposal");
+    if (proposal) {
+      setSelected(proposal);
+    }
+  }, [searchParams]);
+
   // Scroll to detail view when a proposal is selected from URL
   useEffect(() => {
     if (selectedProposal) {

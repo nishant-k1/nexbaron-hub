@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useDivision } from "@/theme/theme-provider";
 import { apiRequest, ApiError, type Division, getApiUrl, getToken } from "@/lib/api";
 import { useEntityLabels } from "@/lib/metadata";
@@ -134,6 +134,7 @@ function loadRazorpay(): Promise<typeof window.Razorpay> {
 
 export default function Proposals() {
   const division = useDivision();
+  const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const proposalLabels = useEntityLabels("proposal");
@@ -142,8 +143,8 @@ export default function Proposals() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const initialProposal = searchParams.get("proposal");
-  const [selected, setSelected] = useState<string | null>(initialProposal);
+  const urlProposal = searchParams.get("proposal");
+  const [selected, setSelected] = useState<string | null>(urlProposal);
   const [agreed, setAgreed] = useState(false);
   const [accepting, setAccepting] = useState(false);
 
@@ -170,7 +171,7 @@ export default function Proposals() {
       .finally(() => setLoading(false));
   }, [division]);
 
-  const selectedProposal = proposals.find((p) => p.proposalCode === selected) || null;
+  const selectedProposal = proposals.find((p) => p.proposalCode === (selected || urlProposal)) || null;
 
   // Filter proposals based on status filter
   const filteredProposals = useMemo(() => {
@@ -186,11 +187,18 @@ export default function Proposals() {
 
   // Sync selected with ?proposal= URL param on mount and navigation
   useEffect(() => {
-    const proposal = searchParams.get("proposal");
+    const proposal = new URLSearchParams(location.search).get("proposal");
     if (proposal) {
       setSelected(proposal);
     }
-  }, [searchParams]);
+  }, [location.search]);
+
+  // Ensure selected is set from URL on initial mount (belt-and-suspenders)
+  useEffect(() => {
+    if (!selected && urlProposal) {
+      setSelected(urlProposal);
+    }
+  }, []);
 
   // Scroll to detail view when a proposal is selected from URL
   useEffect(() => {

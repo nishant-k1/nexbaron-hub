@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useDivision } from "@/theme/theme-provider";
 import { apiRequest, type Division } from "@/lib/api";
+import { useEntityLabels } from "@/lib/metadata";
 import {
   FileText,
   Loader2,
@@ -20,18 +21,32 @@ import {
 } from "lucide-react";
 import { Skeleton, SkeletonCard, SkeletonTable, SkeletonList } from "@/components/ui/Skeleton";
 
-const STATUS_META: Record<string, { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }> = {
-  pending: { label: "Pending", cls: "bg-amber-500/15 text-amber-600", icon: Clock },
-  paid: { label: "Paid", cls: "bg-emerald-500/15 text-emerald-600", icon: CheckCircle2 },
-  in_progress: { label: "In Progress", cls: "bg-blue-500/15 text-blue-600", icon: Truck },
-  delivered: { label: "Delivered", cls: "bg-emerald-500/15 text-emerald-600", icon: CheckCircle2 },
-  cancelled: { label: "Cancelled", cls: "bg-neutral-bg text-muted", icon: AlertTriangle },
+const ORDER_STATUS_CLS: Record<string, string> = {
+  active: "bg-emerald-500/15 text-emerald-600",
+  cancelled: "bg-neutral-bg text-muted",
 };
 
-const MILESTONE_STATUS_META: Record<string, { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }> = {
-  pending: { label: "Pending", cls: "bg-neutral-bg text-muted", icon: Clock },
-  in_progress: { label: "In Progress", cls: "bg-blue-500/15 text-blue-600", icon: Truck },
-  done: { label: "Done", cls: "bg-emerald-500/15 text-emerald-600", icon: CheckCircle2 },
+const PAYMENT_STATUS_CLS: Record<string, string> = {
+  unpaid: "bg-neutral-bg text-muted",
+  partially_paid: "bg-amber-500/15 text-amber-600",
+  fully_paid: "bg-emerald-500/15 text-emerald-600",
+};
+
+const ORDER_STATUS_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  active: CheckCircle2,
+  cancelled: AlertTriangle,
+};
+
+const MILESTONE_STATUS_CLS: Record<string, string> = {
+  pending: "bg-neutral-bg text-muted",
+  in_progress: "bg-blue-500/15 text-blue-600",
+  done: "bg-emerald-500/15 text-emerald-600",
+};
+
+const MILESTONE_STATUS_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  pending: Clock,
+  in_progress: Truck,
+  done: CheckCircle2,
 };
 
 interface OrderItem {
@@ -61,6 +76,8 @@ interface Order {
   amount: number;
   currency: string;
   status: string;
+  paymentStatus: string;
+  planLabel?: string;
   items: OrderItem[];
   milestones: Milestone[];
   customer: {
@@ -92,6 +109,9 @@ export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const orderLabels = useEntityLabels("order");
+  const milestoneLabels = useEntityLabels("milestone");
+  const paymentStatusLabels = useEntityLabels("paymentStatus");
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -188,8 +208,9 @@ export default function OrderDetail() {
 
   if (!order) return null;
 
-  const meta = STATUS_META[order.status] || { label: order.status, cls: "bg-neutral-bg text-muted", icon: FileText };
-  const Icon = meta.icon;
+  const label = orderLabels[order.status] || order.status;
+  const cls = ORDER_STATUS_CLS[order.status] || "bg-neutral-bg text-muted";
+  const Icon = ORDER_STATUS_ICON[order.status] || FileText;
 
   return (
     <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
@@ -198,33 +219,32 @@ export default function OrderDetail() {
           <ArrowLeft className="h-5 w-5 text-muted" />
         </button>
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-heading truncate">{order.projectId}</h1>
-          <p className="text-sm text-muted mt-0.5">Order details and delivery timeline</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-heading truncate">{order.planLabel || order.service || "Order"}</h1>
+          <p className="text-sm text-muted mt-0.5">Order details</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium ${meta.cls}`}>
-            <Icon className="h-4 w-4" /> {meta.label}
+          <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium ${PAYMENT_STATUS_CLS[order.paymentStatus] || "bg-neutral-bg text-muted"}`}>
+            {paymentStatusLabels[order.paymentStatus] || order.paymentStatus}
+          </span>
+          <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium ${cls}`}>
+            <Icon className="h-4 w-4" /> {label}
           </span>
         </div>
       </div>
 
       <div className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-[1fr_360px]">
-        {/* Delivery Milestones - Left column, full height */}
+        {/* Delivery Milestones - Only show if there are milestones */}
+        {order.milestones.length > 0 && (
         <div className="rounded-2xl bg-neutral-surface border border-border p-4 sm:p-6">
           <h2 className="text-xl font-bold text-heading mb-4 flex items-center gap-2">
             <Truck className="h-5 w-5 text-accent" />
             Delivery Milestones
           </h2>
-          {order.milestones.length === 0 ? (
-            <div className="text-center py-8 text-sm text-muted">
-              <Truck className="h-8 w-8 mx-auto mb-2 text-muted" />
-              <p>No milestones defined yet</p>
-            </div>
-          ) : (
             <div className="space-y-4">
               {order.milestones.map((ms, i) => {
-                const mMeta = MILESTONE_STATUS_META[ms.status] || { label: ms.status, cls: "bg-neutral-bg text-muted", icon: Clock };
-                const MilestoneIcon = mMeta.icon;
+                const mLabel = milestoneLabels[ms.status] || ms.status;
+                const mCls = MILESTONE_STATUS_CLS[ms.status] || "bg-neutral-bg text-muted";
+                const MilestoneIcon = MILESTONE_STATUS_ICON[ms.status] || Clock;
                 const isLast = i === order.milestones.length - 1;
                 return (
                   <div key={ms.key || i} className="relative flex gap-4">
@@ -237,8 +257,8 @@ export default function OrderDetail() {
                     <div className="flex-1 min-w-0 pt-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-medium text-heading">{ms.label}</h3>
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${mMeta.cls}`}>
-                          <MilestoneIcon className="h-3 w-3" /> {mMeta.label}
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${mCls}`}>
+                          <MilestoneIcon className="h-3 w-3" /> {mLabel}
                         </span>
                       </div>
                       <p className="text-xs text-muted">{ms.dayLabel}</p>
@@ -249,8 +269,8 @@ export default function OrderDetail() {
                 );
               })}
             </div>
-          )}
         </div>
+        )}
 
         {/* Order Info - Right column, sticky */}
         <div className="xl:sticky xl:top-24">
@@ -286,17 +306,16 @@ export default function OrderDetail() {
             )}
           </div>
 
-          {/* Live Product Details Card */}
+          {/* Live Product Details Card - Only show if there's website data */}
+          {(order.liveWebsiteUrl || order.stagingUrl || (order.liveUrls && order.liveUrls.length > 0)) && (
           <div className="rounded-2xl bg-neutral-surface border border-border p-4 sm:p-6 mt-4 sm:mt-6">
             <h3 className="font-semibold text-heading mb-4 flex items-center gap-2">
               <Globe className="h-5 w-5 text-accent" />
               Live Product Details
             </h3>
             
-            {(order.liveWebsiteUrl || order.stagingUrl || (order.liveUrls && order.liveUrls.length > 0)) ? (
               <div className="space-y-4">
-                {/* Live Website */}
-                <div>
+                {/* Live Website */}                <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted mb-2">
                     {order.liveWebsiteUrl ? "Live Website" : order.stagingUrl ? "Staging Website" : "Live Domains"}
                   </p>
@@ -427,27 +446,14 @@ export default function OrderDetail() {
                     <div className="flex items-center gap-2 text-sm">
                       <div className={`w-2 h-2 rounded-full ${order.googleBusinessProfile.verified ? "bg-emerald-500" : order.googleBusinessProfile.created ? "bg-amber-500" : "bg-muted"}`} />
                       <span className="text-body">
-                        {order.googleBusinessProfile.verified ? "Verified" : order.googleBusinessProfile.created ? "Created — pending verification" : "Not yet created"}
+                        {order.googleBusinessProfile.verified ? "Verified" : order.googleBusinessProfile.created ? "Created - pending verification" : "Not yet created"}
                       </span>
                     </div>
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="text-center py-6">
-                <div className="w-12 h-12 rounded-xl bg-neutral-bg border border-border flex items-center justify-center mx-auto mb-3">
-                  <Globe className="h-6 w-6 text-muted" />
-                </div>
-                <p className="text-sm font-medium text-heading">Not yet live</p>
-                <p className="text-xs text-muted mt-1 max-w-[260px] mx-auto">
-                  Your live product details will appear here once your order is delivered. We’ll share your website link and social profiles as soon as they’re ready.
-                </p>
-                {order.status !== "delivered" && (
-                  <p className="text-xs text-accent mt-3 font-medium">Current status: {order.status}</p>
-                )}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

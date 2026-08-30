@@ -2,38 +2,16 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDivision } from "@/theme/theme-provider";
 import { apiRequest, type Division } from "@/lib/api";
-import { cn } from "@/lib/cn";
+import { useEntityLabels } from "@/lib/metadata";
 import {
-  FileText,
-  Calendar,
   ArrowRight,
-  Loader2,
   Package,
-  Truck,
   CheckCircle2,
-  Clock,
   AlertTriangle,
-  Building2,
-  CreditCard,
-  Search,
-  X,
   Filter,
+  FileText,
 } from "lucide-react";
 import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
-
-const STATUS_META: Record<string, { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }> = {
-  pending: { label: "Pending", cls: "bg-amber-500/15 text-amber-600", icon: Clock },
-  paid: { label: "Paid", cls: "bg-emerald-500/15 text-emerald-600", icon: CheckCircle2 },
-  in_progress: { label: "In Progress", cls: "bg-blue-500/15 text-blue-600", icon: Package },
-  delivered: { label: "Delivered", cls: "bg-emerald-500/15 text-emerald-600", icon: CheckCircle2 },
-  cancelled: { label: "Cancelled", cls: "bg-neutral-bg text-muted", icon: AlertTriangle },
-};
-
-const MILESTONE_STATUS_META: Record<string, { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }> = {
-  pending: { label: "Pending", cls: "bg-neutral-bg text-muted", icon: Clock },
-  in_progress: { label: "In Progress", cls: "bg-blue-500/15 text-blue-600", icon: Package },
-  done: { label: "Done", cls: "bg-emerald-500/15 text-emerald-600", icon: CheckCircle2 },
-};
 
 interface OrderItem {
   kind: string;
@@ -56,9 +34,11 @@ interface Order {
   invoiceNumber?: string;
   proposalCode?: string;
   service?: string;
+  planLabel?: string;
   amount: number;
   currency: string;
   status: string;
+  paymentStatus: string;
   items: OrderItem[];
   milestones: Milestone[];
   createdAt: string;
@@ -72,18 +52,23 @@ interface Order {
   };
 }
 
-const inr = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
-
 // Filter options come from the API catalog (SSOT) — no hardcoded business data.
 const PLAN_FILTER_DEFAULT = [{ value: "", label: "All Plans" }];
+
+const ORDER_STATUS_CLS: Record<string, string> = {
+  active: "bg-emerald-500/15 text-emerald-600",
+  cancelled: "bg-neutral-bg text-muted",
+};
+
+const ORDER_STATUS_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  active: CheckCircle2,
+  cancelled: AlertTriangle,
+};
 
 export default function Orders() {
   const division = useDivision();
   const navigate = useNavigate();
+  const orderLabels = useEntityLabels("order");
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -209,8 +194,9 @@ export default function Orders() {
       ) : (
         <div className="space-y-3">
           {filteredOrders.map((order) => {
-            const meta = STATUS_META[order.status] || { label: order.status, cls: "bg-neutral-bg text-muted", icon: FileText };
-            const Icon = meta.icon;
+            const label = orderLabels[order.status] || order.status;
+            const cls = ORDER_STATUS_CLS[order.status] || "bg-neutral-bg text-muted";
+            const Icon = ORDER_STATUS_ICON[order.status] || FileText;
             return (
               <div
                 key={order._id}
@@ -220,46 +206,20 @@ export default function Orders() {
                 onClick={() => handleViewOrder(order._id)}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleViewOrder(order._id); }}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
+                <div className="flex items-center justify-between gap-3 sm:gap-4">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-9 h-9 rounded-xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
                       <Package className="h-4.5 w-4.5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-heading truncate">{order.projectId}</p>
+                      <p className="font-semibold text-heading truncate">{order.planLabel || order.service || "Order"}</p>
                       <p className="text-xs text-muted">{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
-                    <span className="hidden sm:block text-base font-bold text-heading">{inr.format(order.amount)}</span>
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.cls}`}>
-                      <Icon className="h-3.5 w-3.5" /> {meta.label}
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {order.milestones.slice(0, 4).map((ms, i) => {
-                      const mMeta = MILESTONE_STATUS_META[ms.status] || { label: ms.status, cls: "bg-neutral-bg text-muted", icon: Clock };
-                      const MilestoneIcon = mMeta.icon;
-                      return (
-                        <span key={ms.key || i} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${mMeta.cls}`}>
-                          <MilestoneIcon className="h-3 w-3" /> {ms.label}
-                        </span>
-                      );
-                    })}
-                    {order.milestones.length > 4 && (
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-neutral-bg text-muted">
-                        +{order.milestones.length - 4} more
-                      </span>
-                    )}
-                    {order.milestones.length === 0 && <span className="text-xs text-muted">No milestones</span>}
-                  </div>
-                  <span className="text-xs font-medium text-muted group-hover:text-accent transition-colors flex items-center gap-1 shrink-0 min-h-11 px-2 py-2 -mr-2">
-                    View <ArrowRight className="h-3.5 w-3.5" />
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`}>
+                    <Icon className="h-3.5 w-3.5" /> {label}
                   </span>
                 </div>
-                <p className="sm:hidden text-base font-bold text-heading mt-3">{inr.format(order.amount)}</p>
               </div>
             );
           })}

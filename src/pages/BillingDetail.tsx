@@ -4,6 +4,7 @@ import { useDivision } from "@/theme/theme-provider";
 import { apiRequest, type Division, getApiUrl, getToken } from "@/lib/api";
 import { CheckCircle2, Clock, AlertTriangle, CreditCard, ArrowLeft, X, ArrowRight, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { BILLING_TONE_CLS, type BillingView, billingStatusLabel } from "@/lib/billing";
 
 declare global { interface Window { Razorpay: any } }
 
@@ -11,17 +12,8 @@ interface InvoiceLineItem { label: string; amount: number; type: "ONE_TIME" | "R
 interface Payment { paymentId: string; razorpayPaymentId?: string; amount: number; status: "INITIATED" | "SUCCESS" | "FAILED" | "REFUNDED"; at: string; }
 interface Invoice { _id: string; invoiceNumber: string; status: "DRAFT" | "PENDING" | "PAID" | "FAILED" | "CANCELLED"; amount: number; currency: string; dueDate?: string; lineItems: InvoiceLineItem[]; payments: Payment[]; createdAt: string; packageId?: string; paymentSchedule?: "FULL_UPFRONT" | "FIFTY_FIFTY"; }
 interface Installment { number: number; dueDate: string; amount: number; status: "paid" | "due" | "overdue"; paidAt?: string; paymentId?: string; }
-interface BillingSummary { oneTimeTotal: number; oneTimePaid: number; oneTimeDue: number; recurringTotal: number; recurringPaid: number; recurringDue: number; totalPaid: number; amountDue: number; paidPercent: number; oneTimeItems: InvoiceLineItem[]; recurringItems: InvoiceLineItem[]; }
 
 const inr = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
-
-const STATUS_META: Record<Invoice["status"], { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }> = {
-  DRAFT: { label: "Draft", cls: "bg-neutral-bg text-muted", icon: Clock },
-  PENDING: { label: "Pending", cls: "bg-amber-500/15 text-amber-600", icon: Clock },
-  PAID: { label: "Paid", cls: "bg-emerald-500/15 text-emerald-600", icon: CheckCircle2 },
-  FAILED: { label: "Failed", cls: "bg-red-500/15 text-red-600", icon: AlertTriangle },
-  CANCELLED: { label: "Cancelled", cls: "bg-neutral-bg text-muted", icon: AlertTriangle },
-};
 
 function loadRazorpay(): Promise<typeof window.Razorpay> {
   return new Promise((resolve, reject) => {
@@ -42,7 +34,7 @@ export default function BillingDetail() {
   const { invoiceNumber } = useParams<{ invoiceNumber: string }>();
   const decodedInvoiceNumber = invoiceNumber ? decodeURIComponent(invoiceNumber) : "";
   const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [summary, setSummary] = useState<BillingSummary | null>(null);
+  const [summary, setSummary] = useState<BillingView | null>(null);
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [keyId, setKeyId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -55,7 +47,7 @@ export default function BillingDetail() {
   const load = useCallback(() => {
     if (!division || !decodedInvoiceNumber) return;
     setLoading(true);
-    apiRequest<{ invoice: Invoice; razorpayKeyId?: string; summary: BillingSummary; installments: Installment[] }>(`/${division}/billing/invoices/${decodedInvoiceNumber}`, {}, division as Division)
+    apiRequest<{ invoice: Invoice; razorpayKeyId?: string; summary: BillingView; installments: Installment[] }>(`/${division}/billing/invoices/${decodedInvoiceNumber}`, {}, division as Division)
       .then((d) => {
         setInvoice(d.invoice);
         setSummary(d.summary);
@@ -80,7 +72,7 @@ export default function BillingDetail() {
         const rzp = new Razorpay({
           key: keyId, amount: order.amount, currency: inv.currency || "INR", name: "Nexbaron", description: inv.invoiceNumber, order_id: order.id,
           handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
-            await apiRequest(`/${division}/billing/payments/verify`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...response, invoiceNumber: inv.invoiceNumber, amount: amount ?? inv.amount }) }, division as Division);
+            await apiRequest(`/${division}/billing/payments/verify`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...response, invoiceNumber: inv.invoiceNumber, ...(amount != null ? { amount } : {}) }) }, division as Division);
             load(); setPaymentSuccess(true);
           },
           modal: { ondismiss: () => setPaying(false) },
@@ -171,10 +163,8 @@ export default function BillingDetail() {
     );
   }
 
-  const meta = STATUS_META[invoice.status];
-  const Icon = meta.icon;
-  const totalPaid = summary?.totalPaid ?? 0;
-  const amountDue = summary?.amountDue ?? Math.max(0, invoice.amount - totalPaid);
+  const display = summary?.displayStatus;
+  const headerIcon = display?.tone === "success" ? CheckCircle2 : display?.tone === "danger" ? AlertTriangle : Clock;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
@@ -186,9 +176,12 @@ export default function BillingDetail() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-semibold tracking-tight text-heading font-mono truncate">{invoice.invoiceNumber}</h1>
-            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.cls}`}>
-              <Icon className="h-3 w-3" /> {meta.label}
-            </span>
+            {display && (
+              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${BILLING_TONE_CLS[display.tone]}`}>
+                {(() => { const Icon = headerIcon; return <Icon className="h-3 w-3" />; })()}
+                {display.label}
+              </span>
+            )}
           </div>
           <p className="text-xs text-muted mt-0.5">
             {new Date(invoice.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
@@ -210,9 +203,9 @@ export default function BillingDetail() {
                 <p className="text-xs text-muted mt-0.5">Setup & launch — pay once</p>
               </div>
             </div>
-            <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full shrink-0 ${summary.oneTimeDue === 0 ? "bg-emerald-500/15 text-emerald-600 border border-emerald-500/20" : "bg-amber-500/15 text-amber-600 border border-amber-500/20"}`}>
-              {summary.oneTimeDue === 0 ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
-              {summary.oneTimeDue === 0 ? "Fully paid" : `${inr.format(summary.oneTimeDue)} due`}
+            <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full shrink-0 border ${summary.oneTimeStatus.tone === "success" ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/20" : summary.oneTimeStatus.tone === "warning" ? "bg-amber-500/15 text-amber-600 border-amber-500/20" : "bg-neutral-bg text-muted border-border"}`}>
+              {summary.oneTimeStatus.tone === "success" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
+              {billingStatusLabel(summary.oneTimeStatus, inr)}
             </span>
           </div>
 
@@ -225,10 +218,10 @@ export default function BillingDetail() {
           <div className="mt-5">
             <div className="flex items-center justify-between text-xs mb-2">
               <span className="text-muted">{inr.format(summary.oneTimePaid)} paid</span>
-              <span className={`font-medium ${summary.oneTimeDue === 0 ? "text-emerald-600" : "text-muted"}`}>{summary.oneTimeDue === 0 ? "Paid in full" : `${Math.round((summary.oneTimePaid / Math.max(1, summary.oneTimeTotal)) * 100)}%`}</span>
+              <span className={`font-medium ${summary.oneTimeDue === 0 ? "text-emerald-600" : "text-muted"}`}>{summary.oneTimeDue === 0 ? "Paid in full" : `${summary.oneTimePaidPercent}%`}</span>
             </div>
             <div className="h-2 w-full bg-neutral-bg rounded-full overflow-hidden border border-border/50">
-              <div className="h-full bg-accent transition-all duration-500" style={{ width: `${Math.min(100, Math.round((summary.oneTimePaid / Math.max(1, summary.oneTimeTotal)) * 100))}%` }} />
+              <div className="h-full bg-accent transition-all duration-500" style={{ width: `${summary.oneTimePaidPercent}%` }} />
             </div>
           </div>
 
@@ -237,7 +230,7 @@ export default function BillingDetail() {
               <button onClick={() => handleDownloadReceipt()} disabled={downloading === "full"} className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-neutral-bg hover:bg-neutral-surface text-sm font-medium disabled:opacity-50">
                 {downloading === "full" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Receipt
               </button>
-              {summary.oneTimeDue > 0 && invoice.status === "PENDING" && (
+              {summary.oneTimeDue > 0 && summary.amountDue > 0 && (
                 <button onClick={() => setShowPaymentOptions(true)} className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-accent-fg rounded-xl text-sm font-bold hover:opacity-90">
                   Pay {inr.format(summary.oneTimeDue)}
                 </button>
@@ -257,7 +250,13 @@ export default function BillingDetail() {
               <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted">Recurring billing</h3>
               <p className="text-xs text-muted mt-1">{inr.format(summary.recurringTotal)}/mo · <span className="text-heading font-medium">{inr.format(summary.recurringPaid)} paid</span> · {inr.format(summary.recurringDue)} due</p>
             </div>
-            <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-neutral-surface border border-border text-muted">{paidInstallments.length} paid</span>
+            <div className="flex items-center gap-2">
+              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${summary.recurringStatus.tone === "success" ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/20" : summary.recurringStatus.tone === "warning" ? "bg-amber-500/15 text-amber-600 border-amber-500/20" : "bg-neutral-bg text-muted border-border"}`}>
+                {summary.recurringStatus.tone === "success" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
+                {billingStatusLabel(summary.recurringStatus, inr)}
+              </span>
+              <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-neutral-surface border border-border text-muted">{paidInstallments.length} paid</span>
+            </div>
           </div>
           {paidInstallments.length > 0 ? (
             <div className="divide-y divide-border/40">
@@ -287,8 +286,7 @@ export default function BillingDetail() {
             </div>
           ) : (
             <div className="px-5 py-8 text-center">
-              <p className="text-sm text-muted">No recurring payments yet</p>
-              <p className="text-xs text-muted mt-1">Charges start after setup is complete</p>
+              <p className="text-sm text-muted">{summary.recurringNote || "No recurring payments yet"}</p>
             </div>
           )}
         </div>
@@ -327,21 +325,23 @@ export default function BillingDetail() {
                   {summary.oneTimePaid === 0 
                     ? "Choose your initial payment amount to get started." 
                     : "Pay the remaining balance to complete your setup."} 
-                  Total {inr.format(summary.oneTimeTotal)}.
+                  {summary.recurringTotal > 0
+                    ? ` Setup ${inr.format(summary.oneTimeTotal)}${summary.recurringTotal > 0 ? ` + ${inr.format(summary.recurringTotal)}/mo recurring` : ""}.`
+                    : ` Total ${inr.format(summary.oneTimeTotal)}.`}
                 </p>
                 <div className="rounded-xl bg-neutral-bg border border-border divide-y divide-border/60 mb-4 overflow-hidden">
-                  <div className="flex justify-between px-4 py-2.5"><span className="text-xs text-muted">Paid</span><span className="text-sm font-medium text-heading">{inr.format(summary.oneTimePaid)}</span></div>
-                  <div className="flex justify-between px-4 py-2.5"><span className="text-xs text-muted">Due</span><span className="text-sm font-bold text-heading">{inr.format(summary.oneTimeDue)}</span></div>
+                  <div className="flex justify-between px-4 py-2.5"><span className="text-xs text-muted">Paid</span><span className="text-sm font-medium text-heading">{inr.format(summary.totalPaid)}</span></div>
+                  <div className="flex justify-between px-4 py-2.5"><span className="text-xs text-muted">Due</span><span className="text-sm font-bold text-heading">{inr.format(summary.amountDue)}</span></div>
                 </div>
                 <div className="space-y-3">
-                  {summary.oneTimePaid === 0 && (
+                  {summary.oneTimePaid === 0 && invoice.paymentSchedule === "FIFTY_FIFTY" && (
                     <button onClick={() => pay(invoice, Math.round(summary.oneTimeTotal / 2))} disabled={paying} className="cursor-pointer w-full p-4 rounded-2xl border border-border bg-neutral-bg hover:border-accent/30 flex items-center justify-between text-left disabled:opacity-50 transition-colors">
                       <div><p className="font-medium text-heading text-sm">Pay 50% advance</p><p className="text-xs text-muted mt-0.5">{inr.format(Math.round(summary.oneTimeTotal / 2))} now · remaining {inr.format(summary.oneTimeTotal - Math.round(summary.oneTimeTotal / 2))} later</p></div><ArrowRight className="h-5 w-5 text-muted" />
                     </button>
                   )}
-                  {summary.oneTimeDue > 0 && (
-                    <button onClick={() => pay(invoice, summary.oneTimeDue)} disabled={paying} className="cursor-pointer w-full p-4 rounded-2xl bg-accent text-accent-fg flex items-center justify-between text-left disabled:opacity-50 hover:opacity-90 transition-opacity">
-                      <div><p className="font-semibold text-sm">{summary.oneTimePaid === 0 ? "Pay full amount" : "Pay remaining balance"}</p><p className="text-xs text-accent-fg/70 mt-0.5">{inr.format(summary.oneTimeDue)}</p></div><ArrowRight className="h-5 w-5" />
+                  {summary.amountDue > 0 && (
+                    <button onClick={() => pay(invoice, summary.oneTimePaid === 0 ? summary.amountDue : summary.oneTimeDue)} disabled={paying} className="cursor-pointer w-full p-4 rounded-2xl bg-accent text-accent-fg flex items-center justify-between text-left disabled:opacity-50 hover:opacity-90 transition-opacity">
+                      <div><p className="font-semibold text-sm">{summary.oneTimePaid === 0 ? "Pay full amount" : "Pay remaining balance"}</p><p className="text-xs text-accent-fg/70 mt-0.5">{inr.format(summary.oneTimePaid === 0 ? summary.amountDue : summary.oneTimeDue)}</p></div><ArrowRight className="h-5 w-5" />
                     </button>
                   )}
                 </div>

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDivision } from "@/theme/theme-provider";
 import { apiRequest, ApiError, type Division, getApiUrl, getToken } from "@/lib/api";
+import { useEntityLabels } from "@/lib/metadata";
 import { FileText, CheckCircle2, Clock, ChevronLeft, Check, AlertTriangle, Loader2, CreditCard, Receipt, Filter, X, ArrowRight, Download, ExternalLink, Maximize } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
@@ -27,7 +28,7 @@ interface Proposal {
   packageId: string;
   accountId?: string;
   version: number;
-  status: "DRAFT" | "SENT" | "ACCEPTED";
+  status: "DRAFT" | "SENT" | "ACCEPTED" | "EXPIRED";
   title: string;
   description?: string;
   services: ProposalService[];
@@ -73,38 +74,39 @@ const dateFmt = (s?: string) =>
 const dateTimeFmt = (s?: string) =>
   s ? new Date(s).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
-const SCHEDULE_LABELS: Record<string, string> = { FULL_UPFRONT: "Full upfront", FIFTY_FIFTY: "50 / 50" };
-const FREQUENCY_LABELS: Record<string, string> = { MONTHLY: "Monthly", ANNUAL: "Annual" };
-
-const STATUS_META: Record<Proposal["status"], { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }> = {
-  DRAFT: { label: "Draft", cls: "bg-neutral-bg text-muted", icon: Clock },
-  SENT: { label: "Pending", cls: "bg-amber-500/15 text-amber-600", icon: Clock },
-  ACCEPTED: { label: "Accepted", cls: "bg-emerald-500/15 text-emerald-600", icon: CheckCircle2 },
+const PROPOSAL_STATUS_CLS: Record<string, string> = {
+  DRAFT: "bg-neutral-bg text-muted",
+  SENT: "bg-amber-500/15 text-amber-600",
+  ACCEPTED: "bg-emerald-500/15 text-emerald-600",
+  EXPIRED: "bg-red-500/15 text-red-600",
 };
 
-function getProposalDisplayStatus(proposal: Proposal): keyof typeof STATUS_META {
-  if (proposal.status === "ACCEPTED") return "ACCEPTED";
-  if (proposal.status === "DRAFT") return "DRAFT";
-  const sentDate = new Date(proposal.updatedAt || proposal.createdAt);
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  if (sentDate < thirtyDaysAgo) {
-    return "EXPIRED" as keyof typeof STATUS_META;
-  }
-  return "SENT";
+const PROPOSAL_STATUS_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  DRAFT: Clock,
+  SENT: Clock,
+  ACCEPTED: CheckCircle2,
+  EXPIRED: AlertTriangle,
+};
+
+const INVOICE_STATUS_CLS: Record<string, string> = {
+  DRAFT: "bg-neutral-bg text-muted",
+  PENDING: "bg-amber-500/15 text-amber-600",
+  PAID: "bg-emerald-500/15 text-emerald-600",
+  FAILED: "bg-red-500/15 text-red-600",
+  CANCELLED: "bg-neutral-bg text-muted",
+};
+
+const INVOICE_STATUS_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  DRAFT: Clock,
+  PENDING: Clock,
+  PAID: CheckCircle2,
+  FAILED: AlertTriangle,
+  CANCELLED: AlertTriangle,
+};
+
+function getProposalDisplayStatus(proposal: Proposal): string {
+  return proposal.status;
 }
-
-const STATUS_META_EXTENDED: Record<string, { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }> = {
-  ...STATUS_META,
-  EXPIRED: { label: "Expired", cls: "bg-red-500/15 text-red-600", icon: AlertTriangle },
-};
-
-const INVOICE_STATUS_META: Record<Invoice["status"], { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }> = {
-  DRAFT: { label: "Draft", cls: "bg-neutral-bg text-muted", icon: Clock },
-  PENDING: { label: "Pending", cls: "bg-amber-500/15 text-amber-600", icon: Clock },
-  PAID: { label: "Paid", cls: "bg-emerald-500/15 text-emerald-600", icon: CheckCircle2 },
-  FAILED: { label: "Failed", cls: "bg-red-500/15 text-red-600", icon: AlertTriangle },
-  CANCELLED: { label: "Cancelled", cls: "bg-neutral-bg text-muted", icon: AlertTriangle },
-};
 
 function friendlyAcceptError(err: unknown): string {
   if (err instanceof ApiError) {
@@ -134,6 +136,8 @@ export default function Proposals() {
   const division = useDivision();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const proposalLabels = useEntityLabels("proposal");
+  const invoiceLabels = useEntityLabels("invoice");
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -345,8 +349,9 @@ export default function Proposals() {
             <div className="space-y-3">
               {filteredProposals.map((p) => {
                 const displayStatus = getProposalDisplayStatus(p);
-                const meta = STATUS_META_EXTENDED[displayStatus];
-                const Icon = meta.icon;
+                const label = proposalLabels[displayStatus] || displayStatus;
+                const cls = PROPOSAL_STATUS_CLS[displayStatus] || "bg-neutral-bg text-muted";
+                const Icon = PROPOSAL_STATUS_ICON[displayStatus] || Clock;
                 return (
                   <button
                     key={p._id}
@@ -363,11 +368,11 @@ export default function Proposals() {
                         {p.description && <p className="text-xs text-muted truncate mt-0.5 max-w-[480px]">{p.description}</p>}
                       </div>
                     </div>
-                    <span className={`hidden sm:inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${meta.cls}`}>
-                      <Icon className="h-3.5 w-3.5" /> {meta.label}
+                    <span className={`hidden sm:inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${cls}`}>
+                      <Icon className="h-3.5 w-3.5" /> {label}
                     </span>
-                    <span className={`sm:hidden inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium shrink-0 ${meta.cls}`}>
-                      <Icon className="h-3 w-3" /> {meta.label}
+                    <span className={`sm:hidden inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium shrink-0 ${cls}`}>
+                      <Icon className="h-3 w-3" /> {label}
                     </span>
                   </button>
                 );
@@ -390,6 +395,8 @@ export default function Proposals() {
           paying={paying}
           pay={pay}
           onShowPayOptions={() => setShowPayOptions(true)}
+          proposalLabels={proposalLabels}
+          invoiceLabels={invoiceLabels}
         />
       )}
 
@@ -556,6 +563,8 @@ function ProposalDetail({
   paying,
   pay,
   onShowPayOptions,
+  proposalLabels,
+  invoiceLabels,
 }: {
   proposal: Proposal;
   agreed: boolean;
@@ -569,10 +578,13 @@ function ProposalDetail({
   paying: boolean;
   pay: (inv: Invoice, amount?: number) => void;
   onShowPayOptions: () => void;
+  proposalLabels: Record<string, string>;
+  invoiceLabels: Record<string, string>;
 }) {
   const displayStatus = getProposalDisplayStatus(proposal);
-  const meta = STATUS_META_EXTENDED[displayStatus];
-  const Icon = meta.icon;
+  const label = proposalLabels[displayStatus] || displayStatus;
+  const cls = PROPOSAL_STATUS_CLS[displayStatus] || "bg-neutral-bg text-muted";
+  const Icon = PROPOSAL_STATUS_ICON[displayStatus] || Clock;
   const p = proposal.pricing;
 
   const showInvoiceSection = proposal.status === "ACCEPTED";
@@ -671,8 +683,8 @@ function ProposalDetail({
             <h2 className="text-lg sm:text-xl font-bold text-heading break-words">{proposal.title}</h2>
             <p className="text-xs text-muted mt-1 break-all">{proposal.proposalCode} · Package {proposal.packageId} · Version {proposal.version}</p>
           </div>
-          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${meta.cls}`}>
-            <Icon className="h-3.5 w-3.5" /> {meta.label}
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${cls}`}>
+            <Icon className="h-3.5 w-3.5" /> {label}
           </span>
         </div>
 
@@ -768,10 +780,12 @@ function ProposalDetail({
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Invoice</p>
               {invoice && (() => {
-                const InvoiceStatusIcon = INVOICE_STATUS_META[invoice.status].icon;
+                const invLabel = invoiceLabels[invoice.status] || invoice.status;
+                const invCls = INVOICE_STATUS_CLS[invoice.status] || "bg-neutral-bg text-muted";
+                const InvStatusIcon = INVOICE_STATUS_ICON[invoice.status] || Clock;
                 return (
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${INVOICE_STATUS_META[invoice.status].cls}`}>
-                    <InvoiceStatusIcon className="h-3.5 w-3.5" /> {INVOICE_STATUS_META[invoice.status].label}
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${invCls}`}>
+                    <InvStatusIcon className="h-3.5 w-3.5" /> {invLabel}
                   </span>
                 );
               })()}

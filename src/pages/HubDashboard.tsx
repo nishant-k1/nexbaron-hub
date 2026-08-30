@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDivision } from "@/theme/theme-provider";
 import { apiRequest, type Division } from "@/lib/api";
+import { useEntityLabels } from "@/lib/metadata";
 import { Package, FileText, Receipt, MessageSquare, ArrowUpRight, Hash } from "lucide-react";
 
 interface Account {
@@ -11,18 +12,9 @@ interface Account {
   lifecycleStage: string;
 }
 
-const STAGE_LABELS: Record<string, string> = {
-  REGISTERED: "Getting started",
-  LEAD: "Lead",
-  PACKAGE_SELECTED: "Plan selected",
-  PROPOSAL_SENT: "Proposal sent",
-  PROPOSAL_ACCEPTED: "Proposal accepted",
-  PAYMENT_PENDING: "Payment pending",
-  CUSTOMER: "Active customer",
-};
-
 export default function HubDashboard() {
   const division = useDivision();
+  const lifecycleLabels = useEntityLabels("lifecycle");
   const [account, setAccount] = useState<Account | null>(null);
   const [counts, setCounts] = useState({ packages: 0, proposals: 0, invoices: 0 });
 
@@ -70,7 +62,7 @@ export default function HubDashboard() {
         </div>
         {account && (
           <span className="rounded-full bg-accent/10 text-accent px-3 py-1.5 text-xs font-medium shrink-0 self-start sm:self-auto">
-            {STAGE_LABELS[account.lifecycleStage] || account.lifecycleStage}
+            {lifecycleLabels[account.lifecycleStage] || account.lifecycleStage}
           </span>
         )}
       </div>

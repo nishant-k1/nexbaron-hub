@@ -2,9 +2,11 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useDivision } from "@/theme/theme-provider";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { apiRequest, type Division, getApiUrl, getToken } from "@/lib/api";
+import { useEntityLabels } from "@/lib/metadata";
 import { Receipt, CheckCircle2, Clock, AlertTriangle, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton, SkeletonCard } from "@/components/ui/Skeleton";
+import { BILLING_TONE_CLS, type BillingView } from "@/lib/billing";
 
 declare global {
   interface Window { Razorpay: any }
@@ -36,6 +38,7 @@ interface Invoice {
   createdAt: string;
   packageId?: string;
   proposalCode?: string;
+  summary?: BillingView;
 }
 
 const inr = new Intl.NumberFormat("en-IN", {
@@ -44,12 +47,20 @@ const inr = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 0,
 });
 
-const STATUS_META: Record<Invoice["status"], { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }> = {
-  DRAFT: { label: "Draft", cls: "bg-neutral-bg text-muted", icon: Clock },
-  PENDING: { label: "Pending", cls: "bg-amber-500/15 text-amber-600", icon: Clock },
-  PAID: { label: "Paid", cls: "bg-emerald-500/15 text-emerald-600", icon: CheckCircle2 },
-  FAILED: { label: "Failed", cls: "bg-red-500/15 text-red-600", icon: AlertTriangle },
-  CANCELLED: { label: "Cancelled", cls: "bg-neutral-bg text-muted", icon: AlertTriangle },
+const INVOICE_STATUS_CLS: Record<string, string> = {
+  DRAFT: "bg-neutral-bg text-muted",
+  PENDING: "bg-amber-500/15 text-amber-600",
+  PAID: "bg-emerald-500/15 text-emerald-600",
+  FAILED: "bg-red-500/15 text-red-600",
+  CANCELLED: "bg-neutral-bg text-muted",
+};
+
+const INVOICE_STATUS_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
+  DRAFT: Clock,
+  PENDING: Clock,
+  PAID: CheckCircle2,
+  FAILED: AlertTriangle,
+  CANCELLED: AlertTriangle,
 };
 
 function loadRazorpay(): Promise<typeof window.Razorpay> {
@@ -67,6 +78,7 @@ export default function Billing() {
   const division = useDivision();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const invoiceLabels = useEntityLabels("invoice");
   const targetInvoice = searchParams.get("invoice");
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [keyId, setKeyId] = useState("");
@@ -224,8 +236,11 @@ export default function Billing() {
       ) : (
         <div className="space-y-3">
           {invoices.map((inv) => {
-            const meta = STATUS_META[inv.status];
-            const Icon = meta.icon;
+            const display = inv.summary?.displayStatus;
+            const fallbackLabel = invoiceLabels[inv.status] || inv.status;
+            const statusLabel = display?.label ?? fallbackLabel;
+            const statusCls = display ? BILLING_TONE_CLS[display.tone] : INVOICE_STATUS_CLS[inv.status] || "bg-neutral-bg text-muted";
+            const Icon = display?.tone === "success" ? CheckCircle2 : display?.tone === "danger" ? AlertTriangle : INVOICE_STATUS_ICON[inv.status] || Clock;
             return (
               <div
                 ref={(el) => { if (el) invoiceRefs.current.set(inv.invoiceNumber, el); }}
@@ -252,8 +267,8 @@ export default function Billing() {
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
                     <span className="hidden sm:block text-base font-bold text-heading">{inr.format(inv.amount)}</span>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${meta.cls}`}>
-                      <Icon className="h-3.5 w-3.5" /> {meta.label}
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${statusCls}`}>
+                      <Icon className="h-3.5 w-3.5" /> {statusLabel}
                     </span>
                     {(inv.status === "PAID" || inv.payments?.some(p => p.status === "SUCCESS")) && (
                       <button

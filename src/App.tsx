@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { Toaster } from "sonner"
 import { AuthProvider, useAuth } from "@/auth/auth-context"
 import { ThemeProvider, DivisionProvider, useDivision } from "@/theme/theme-provider"
+import { MetadataProvider } from "@/lib/metadata"
 import type { Division } from "@/lib/api"
 import AppLayout from "@/components/layout/AppLayout"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
@@ -79,8 +80,9 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <DivisionWrapper>
-            <HubRoutes />
-            <Toaster
+            <MetadataProvider>
+              <HubRoutes />
+              <Toaster
               position="top-right"
               richColors
               closeButton
@@ -94,6 +96,7 @@ export default function App() {
                 },
               }}
             />
+            </MetadataProvider>
           </DivisionWrapper>
         </AuthProvider>
       </ThemeProvider>

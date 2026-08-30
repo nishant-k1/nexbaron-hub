@@ -41,6 +41,7 @@ function DigitalLanding() {
 function HubRoutes() {
   const { initialized, user } = useAuth()
   const division = useDivision()
+  const location = useLocation()
 
   if (!initialized) {
     return (
@@ -53,7 +54,7 @@ function HubRoutes() {
   return (
     <Routes>
       <Route path="/:division/login" element={<ErrorBoundary name="Login"><Login /></ErrorBoundary>} />
-      <Route path="/:division" element={user ? <AppLayout /> : <Navigate to="login" replace />}>
+      <Route path="/:division" element={user ? <AppLayout /> : <Navigate to={`login${location.search}`} replace />}>
         <Route index element={division === "digital" ? <DigitalLanding /> : <ErrorBoundary name="HubDashboard"><HubDashboard /></ErrorBoundary>} />
         <Route path="settings" element={<ErrorBoundary name="Settings"><Settings /></ErrorBoundary>} />
         <Route path="messages" element={<ErrorBoundary name="Messages"><Messages /></ErrorBoundary>} />

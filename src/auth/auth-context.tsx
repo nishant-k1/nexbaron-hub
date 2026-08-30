@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { void refresh() }, [refresh])
 
   // Auto-login via ?token= in URL (from pricing page signup)
-  // Preserves ?plan=&billing= intent so Plans can auto-open the proposal modal.
+  // Preserves ?plan=&billing=&proposal= intent so Plans/Proposals can auto-open the right view.
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const tokenParam = params.get("token")
@@ -70,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const div = division
       const plan = params.get("plan")
       const billing = params.get("billing")
+      const proposal = params.get("proposal")
       // Verify the token by fetching /me
       setToken(tokenParam, div)
       apiRequest<{ user: AuthUser }>(`/${div}/auth/me`, {}, div)
@@ -78,10 +79,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ++refreshGen.current
             setUser(data.user)
             setInitialized(true)
-            // Clean token from URL but keep plan intent for DigitalLanding -> Plans auto-modal
+            // Clean token from URL but keep plan/billing/proposal intent
             const qs = new URLSearchParams()
             if (plan) qs.set("plan", plan)
             if (billing) qs.set("billing", billing)
+            if (proposal) qs.set("proposal", proposal)
             const target = qs.toString() ? `/${div}?${qs.toString()}` : `/${div}`
             navigate(target, { replace: true })
           } else {

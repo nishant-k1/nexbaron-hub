@@ -43,6 +43,7 @@ export default function Login() {
     const qs = new URLSearchParams({ token })
     if (params.get("plan")) qs.set("plan", params.get("plan")!)
     if (params.get("billing")) qs.set("billing", params.get("billing")!)
+    if (params.get("proposal")) qs.set("proposal", params.get("proposal")!)
     return `/${division}?${qs.toString()}`
   }
 
@@ -52,10 +53,14 @@ export default function Login() {
       const qs = new URLSearchParams()
       if (params.get("plan")) qs.set("plan", params.get("plan")!)
       if (params.get("billing")) qs.set("billing", params.get("billing")!)
+      if (params.get("proposal")) qs.set("proposal", params.get("proposal")!)
+      const proposal = params.get("proposal")
       const target =
-        division === "digital"
-          ? `/${division}/packages${qs.toString() ? `?${qs}` : ""}`
-          : `/${division}`
+        proposal
+          ? `/${division}/proposals?proposal=${encodeURIComponent(proposal)}`
+          : division === "digital"
+            ? `/${division}/packages${qs.toString() ? `?${qs}` : ""}`
+            : `/${division}`
       navigate(target, { replace: true })
     }
   }, [initialized, user, division, navigate])

@@ -245,7 +245,7 @@ export default function ChatPage() {
   }, [division, user, attachments, loadMessages]);
 
   return (
-    <div className="flex flex-col h-full min-h-0 rounded-2xl overflow-hidden bg-neutral-bg shadow-lg">
+    <div className="flex flex-col h-full min-h-0 rounded-2xl overflow-hidden bg-neutral-surface border border-border">
       <p className="text-sm text-muted px-3 sm:px-4 py-2.5 sm:py-3 bg-neutral-surface">Continue conversations you started on the website.</p>
 
       <div className="flex-1 min-h-0 overflow-y-auto bg-neutral-bg p-2 sm:p-4 space-y-3 sm:space-y-4">

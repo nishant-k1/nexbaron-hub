@@ -594,7 +594,6 @@ function ProposalDetail({
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfDownloading, setPdfDownloading] = useState(false);
   const [showPdfFullscreen, setShowPdfFullscreen] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [hasViewed, setHasViewed] = useState(() => {
     try { return sessionStorage.getItem(`proposal-viewed-${proposal.proposalCode}`) === "1"; } catch { return false; }
   });
@@ -705,7 +704,7 @@ function ProposalDetail({
               <button onClick={handleDownloadPdf} disabled={pdfDownloading} className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-neutral-surface hover:bg-neutral-bg text-xs font-medium disabled:opacity-50">
                 {pdfDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Download
               </button>
-              <button onClick={() => iframeRef.current?.requestFullscreen()} disabled={!pdfUrl} className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-neutral-surface hover:bg-neutral-bg text-xs font-medium disabled:opacity-30">
+              <button onClick={() => setShowPdfFullscreen(true)} disabled={!pdfUrl} className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-neutral-surface hover:bg-neutral-bg text-xs font-medium disabled:opacity-30">
                 <Maximize className="h-3.5 w-3.5" /> Full screen
               </button>
             </div>
@@ -716,7 +715,9 @@ function ProposalDetail({
                 <Loader2 className="h-6 w-6 animate-spin text-muted" />
               </div>
             ) : pdfUrl ? (
-              <iframe src={pdfUrl} title={`Proposal ${proposal.proposalCode}`} className="w-full h-[520px] border-0" ref={iframeRef} />
+              <div className="relative">
+                <iframe src={pdfUrl} title={`Proposal ${proposal.proposalCode}`} className="w-full h-[600px] border-0" />
+              </div>
             ) : (
               <div className="h-[320px] flex flex-col items-center justify-center p-6 text-center">
                 <FileText className="h-8 w-8 text-muted mb-2" />
@@ -905,6 +906,20 @@ function ProposalDetail({
           </div>
         )}
       </div>
+
+      {showPdfFullscreen && pdfUrl && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3 bg-black/50">
+            <span className="text-sm font-medium text-white">Proposal {proposal.proposalCode}</span>
+            <button onClick={() => setShowPdfFullscreen(false)} className="cursor-pointer p-2 rounded-xl hover:bg-white/10 text-white">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <iframe src={pdfUrl} title={`Proposal ${proposal.proposalCode}`} className="w-full h-full border-0" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

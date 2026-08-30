@@ -213,7 +213,7 @@ export function SearchBar({
         {filters.query && (
           <button
             onClick={handleClearQuery}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-heading"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-heading cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
@@ -225,7 +225,7 @@ export function SearchBar({
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           className={cn(
-            "w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-neutral-bg border border-border rounded-xl text-sm font-medium transition-colors",
+            "cursor-pointer w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-neutral-bg border border-border rounded-xl text-sm font-medium transition-colors",
             (filters.query || filters.dateFrom || filters.dateTo || filters.amountMin !== undefined || filters.amountMax !== undefined || filters.mode !== "all") 
               ? "border-accent/50 bg-accent/5 text-accent" 
               : "text-muted hover:text-heading hover:border-accent/50"
@@ -247,7 +247,7 @@ export function SearchBar({
                   key={option.value}
                   onClick={() => onFiltersChange({ ...filters, mode: option.value })}
                   className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                    "cursor-pointer w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
                     filters.mode === option.value
                       ? "bg-accent/10 text-accent font-medium"
                       : "text-muted hover:text-heading hover:bg-neutral-bg"
@@ -321,7 +321,7 @@ export function SearchBar({
                           dateTo: format(to),
                         });
                       }}
-                      className="px-3 py-1.5 text-xs font-medium text-muted hover:text-heading hover:bg-neutral-surface rounded-lg transition-colors"
+                      className="cursor-pointer px-3 py-1.5 text-xs font-medium text-muted hover:text-heading hover:bg-neutral-surface rounded-lg transition-colors"
                     >
                       {preset.label}
                     </button>
@@ -366,7 +366,7 @@ export function SearchBar({
                 <button
                   type="button"
                   onClick={() => onFiltersChange({ ...filters, mode: "date" })}
-                  className="px-3 py-1.5 text-xs font-medium text-muted hover:text-heading hover:bg-neutral-surface rounded-lg transition-colors"
+                  className="cursor-pointer px-3 py-1.5 text-xs font-medium text-muted hover:text-heading hover:bg-neutral-surface rounded-lg transition-colors"
                 >
                   <Calendar className="h-3.5 w-3.5 mr-1.5" />
                   Date
@@ -375,7 +375,7 @@ export function SearchBar({
                   type="button"
                   onClick={() => onFiltersChange({ ...filters, mode: "amount" })}
                   className={cn(
-                    "px-3 py-1.5 text-xs font-medium text-muted hover:text-heading hover:bg-neutral-surface rounded-lg transition-colors",
+                    "cursor-pointer px-3 py-1.5 text-xs font-medium text-muted hover:text-heading hover:bg-neutral-surface rounded-lg transition-colors",
                     !showAmountRange && "hidden"
                   )}
                 >
@@ -395,7 +395,7 @@ export function SearchBar({
                     amountMin: undefined,
                     amountMax: undefined,
                   })}
-                  className="px-3 py-1.5 text-xs font-medium text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                  className="cursor-pointer px-3 py-1.5 text-xs font-medium text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                 >
                   <X className="h-3.5 w-3.5 mr-1.5" />
                   Clear

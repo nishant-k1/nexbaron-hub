@@ -394,8 +394,8 @@ export default function Proposals() {
       )}
 
       {showPayOptions && invoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => !paying && setShowPayOptions(false)}>
-          <div className="bg-neutral-surface rounded-2xl w-full max-w-md border border-border shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 cursor-pointer" onClick={() => !paying && setShowPayOptions(false)}>
+          <div className="bg-neutral-surface rounded-2xl w-full max-w-md border border-border shadow-2xl p-6 cursor-default" onClick={(e) => e.stopPropagation()}>
             {paying ? (
               <div className="py-10 flex flex-col items-center text-center">
                 <Loader2 className="w-8 h-8 animate-spin text-accent" />
@@ -426,14 +426,14 @@ export default function Proposals() {
 
       {(acceptSuccess || paymentSuccessInvoice) && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 cursor-pointer"
           onClick={() => {
             setAcceptSuccess(null);
             setPaymentSuccessInvoice(null);
           }}
         >
           <div
-            className="bg-neutral-surface rounded-2xl w-full max-w-md shadow-2xl p-6 transition-all duration-300"
+            className="bg-neutral-surface rounded-2xl w-full max-w-md shadow-2xl p-6 transition-all duration-300 cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
             {paymentSuccessInvoice ? (
@@ -661,7 +661,7 @@ function ProposalDetail({
 
   return (
     <div className="space-y-6">
-      <button onClick={onBack} className="cursor-pointer inline-flex items-center gap-1.5 text-sm text-muted hover:text-heading transition-colors">
+          <button onClick={onBack} className="cursor-pointer inline-flex items-center gap-1.5 text-sm text-muted hover:text-heading transition-colors">
         <ChevronLeft className="h-4 w-4" /> Back to proposals
       </button>
 
@@ -745,7 +745,7 @@ function ProposalDetail({
                 type="checkbox"
                 checked={agreed}
                 onChange={onToggleAgree}
-                className="mt-0.5 accent-[var(--accent)] h-4 w-4"
+                className="cursor-pointer mt-0.5 accent-[var(--accent)] h-4 w-4"
               />
               <span>I have read and agree to the terms and conditions above.</span>
             </label>

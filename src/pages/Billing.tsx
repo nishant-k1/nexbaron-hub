@@ -259,7 +259,7 @@ export default function Billing() {
                       <button
                         onClick={(e) => handleDownloadReceipt(inv, e)}
                         disabled={downloading === inv.invoiceNumber}
-                        className="hidden sm:inline-flex items-center gap-1 px-3 py-2 rounded-full border border-border bg-neutral-surface hover:bg-neutral-bg text-xs font-medium disabled:opacity-50 min-h-11"
+                        className="cursor-pointer hidden sm:inline-flex items-center gap-1 px-3 py-2 rounded-full border border-border bg-neutral-surface hover:bg-neutral-bg text-xs font-medium disabled:opacity-50 min-h-11"
                         title="Download receipt"
                       >
                         {downloading === inv.invoiceNumber ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
@@ -275,7 +275,7 @@ export default function Billing() {
                       <button
                         onClick={(e) => handleDownloadReceipt(inv, e)}
                         disabled={downloading === inv.invoiceNumber}
-                        className="inline-flex items-center gap-1 px-3 py-2 rounded-full border border-border bg-neutral-surface text-xs font-medium disabled:opacity-50 min-h-11"
+                        className="cursor-pointer inline-flex items-center gap-1 px-3 py-2 rounded-full border border-border bg-neutral-surface text-xs font-medium disabled:opacity-50 min-h-11"
                       >
                         {downloading === inv.invoiceNumber ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
                         Receipt

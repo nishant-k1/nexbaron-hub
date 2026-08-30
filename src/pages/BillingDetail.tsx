@@ -195,16 +195,11 @@ export default function BillingDetail() {
             {invoice.dueDate ? ` · Due ${new Date(invoice.dueDate).toLocaleDateString("en-IN")}` : ""}
           </p>
         </div>
-        {invoice.status === "PENDING" && amountDue > 0 && (
-          <button onClick={() => setShowPaymentOptions(true)} disabled={paying} className="hidden sm:inline-flex cursor-pointer items-center gap-2 px-5 py-2.5 bg-accent text-accent-fg font-semibold text-sm rounded-full hover:opacity-90 disabled:opacity-50 shrink-0">
-            <CreditCard className="h-4 w-4" /> Pay now
-          </button>
-        )}
       </div>
 
       {/* One-time — PROMINENT hero card */}
       {hasOneTime && summary && (
-        <div className="rounded-2xl bg-neutral-surface border-2 border-accent/20 p-5 sm:p-7 lg:p-8 shadow-sm">
+        <div className="rounded-2xl bg-neutral-surface border border-border p-5 sm:p-7 lg:p-8 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-accent text-accent-fg flex items-center justify-center shrink-0">
@@ -270,20 +265,20 @@ export default function BillingDetail() {
                 <span>Date</span><span className="text-right">Amount</span><span className="text-right">Receipt</span>
               </div>
               {paidInstallments.map((inst) => (
-                <div key={inst.number} className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_110px_48px] items-center gap-2 px-4 sm:px-5 py-2.5 hover:bg-neutral-bg/40 transition-colors">
+                <div key={inst.number} className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_110px_48px] items-center gap-2 px-4 sm:px-5 py-2.5 hover:bg-neutral-bg/40 cursor-pointer transition-colors" onClick={() => inst.paymentId && handleDownloadReceipt(inst.paymentId)}>
                   <span className="text-sm text-heading truncate">{inst.paidAt ? new Date(inst.paidAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : new Date(inst.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
                   <span className="text-sm font-semibold text-heading text-right">{inr.format(inst.amount)}</span>
                   <span className="hidden sm:flex justify-end">
                     {inst.paymentId ? (
-                      <button onClick={() => handleDownloadReceipt(inst.paymentId)} disabled={downloading === inst.paymentId} className="cursor-pointer w-7 h-7 rounded-lg border border-border hover:bg-neutral-surface disabled:opacity-50 flex items-center justify-center">
-                        {downloading === inst.paymentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3 text-muted" />}
+                      <button onClick={(e) => { e.stopPropagation(); handleDownloadReceipt(inst.paymentId); }} disabled={downloading === inst.paymentId} className="cursor-pointer w-7 h-7 rounded-lg border border-border hover:bg-neutral-surface disabled:opacity-50 flex items-center justify-center">
+                        {downloading === inst.paymentId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                       </button>
                     ) : <span className="text-muted">—</span>}
                   </span>
                   <span className="sm:hidden flex justify-end">
                     {inst.paymentId && (
-                      <button onClick={() => handleDownloadReceipt(inst.paymentId)} disabled={downloading === inst.paymentId} className="cursor-pointer w-7 h-7 rounded-lg border border-border hover:bg-neutral-surface disabled:opacity-50 flex items-center justify-center">
-                        {downloading === inst.paymentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3 text-muted" />}
+                      <button onClick={(e) => { e.stopPropagation(); handleDownloadReceipt(inst.paymentId); }} disabled={downloading === inst.paymentId} className="cursor-pointer w-7 h-7 rounded-lg border border-border hover:bg-neutral-surface disabled:opacity-50 flex items-center justify-center">
+                        {downloading === inst.paymentId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                       </button>
                     )}
                   </span>
@@ -300,19 +295,9 @@ export default function BillingDetail() {
         );
       })()}
 
-
-
-      {invoice.status === "PENDING" && amountDue > 0 && (
-        <div className="sm:hidden">
-          <button onClick={() => setShowPaymentOptions(true)} disabled={paying} className="w-full cursor-pointer inline-flex items-center justify-center gap-2 px-6 py-4 bg-accent text-accent-fg font-semibold text-sm rounded-full hover:opacity-90 disabled:opacity-50">
-            <CreditCard className="h-4 w-4" /> Pay {inr.format(amountDue)}
-          </button>
-        </div>
-      )}
-
       {(showPaymentOptions || paymentSuccess) && summary && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => { if (paying) return; setShowPaymentOptions(false); setPaymentSuccess(false); }}>
-          <div className="bg-neutral-surface rounded-2xl w-full max-w-md border border-border shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 cursor-pointer" onClick={() => { if (paying) return; setShowPaymentOptions(false); setPaymentSuccess(false); }}>
+          <div className="bg-neutral-surface rounded-2xl w-full max-w-md border border-border shadow-2xl p-6 cursor-default" onClick={(e) => e.stopPropagation()}>
             {paymentSuccess ? (
               <>
                 <div className="flex items-center justify-between mb-4">
@@ -340,23 +325,23 @@ export default function BillingDetail() {
                 </div>
                 <p className="text-sm text-muted mb-4">
                   {summary.oneTimePaid === 0 
-                    ? "Pay 50% advance or the full amount." 
-                    : "Pay the remaining balance."} 
+                    ? "Choose your initial payment amount to get started." 
+                    : "Pay the remaining balance to complete your setup."} 
                   Total {inr.format(summary.oneTimeTotal)}.
                 </p>
                 <div className="rounded-xl bg-neutral-bg border border-border divide-y divide-border/60 mb-4 overflow-hidden">
-                  <div className="flex justify-between px-4 py-2.5"><span className="text-xs text-muted">Paid</span><span className="text-sm font-medium text-heading">{inr.format(summary.totalPaid)}</span></div>
-                  <div className="flex justify-between px-4 py-2.5"><span className="text-xs text-muted">Due</span><span className="text-sm font-bold text-heading">{inr.format(amountDue)}</span></div>
+                  <div className="flex justify-between px-4 py-2.5"><span className="text-xs text-muted">Paid</span><span className="text-sm font-medium text-heading">{inr.format(summary.oneTimePaid)}</span></div>
+                  <div className="flex justify-between px-4 py-2.5"><span className="text-xs text-muted">Due</span><span className="text-sm font-bold text-heading">{inr.format(summary.oneTimeDue)}</span></div>
                 </div>
                 <div className="space-y-3">
                   {summary.oneTimePaid === 0 && (
-                    <button onClick={() => pay(invoice, Math.round(summary.oneTimeTotal / 2))} disabled={paying} className="cursor-pointer w-full p-4 rounded-2xl border border-border bg-neutral-bg hover:border-accent/30 flex items-center justify-between text-left disabled:opacity-50">
+                    <button onClick={() => pay(invoice, Math.round(summary.oneTimeTotal / 2))} disabled={paying} className="cursor-pointer w-full p-4 rounded-2xl border border-border bg-neutral-bg hover:border-accent/30 flex items-center justify-between text-left disabled:opacity-50 transition-colors">
                       <div><p className="font-medium text-heading text-sm">Pay 50% advance</p><p className="text-xs text-muted mt-0.5">{inr.format(Math.round(summary.oneTimeTotal / 2))} now · remaining {inr.format(summary.oneTimeTotal - Math.round(summary.oneTimeTotal / 2))} later</p></div><ArrowRight className="h-5 w-5 text-muted" />
                     </button>
                   )}
-                  {amountDue > 0 && (
-                    <button onClick={() => pay(invoice, amountDue)} disabled={paying} className="cursor-pointer w-full p-4 rounded-2xl bg-accent text-accent-fg flex items-center justify-between text-left disabled:opacity-50">
-                      <div><p className="font-semibold text-sm">{summary.oneTimePaid === 0 ? "Pay full amount" : "Pay remaining balance"}</p><p className="text-xs text-accent-fg/70 mt-0.5">{inr.format(amountDue)}</p></div><ArrowRight className="h-5 w-5" />
+                  {summary.oneTimeDue > 0 && (
+                    <button onClick={() => pay(invoice, summary.oneTimeDue)} disabled={paying} className="cursor-pointer w-full p-4 rounded-2xl bg-accent text-accent-fg flex items-center justify-between text-left disabled:opacity-50 hover:opacity-90 transition-opacity">
+                      <div><p className="font-semibold text-sm">{summary.oneTimePaid === 0 ? "Pay full amount" : "Pay remaining balance"}</p><p className="text-xs text-accent-fg/70 mt-0.5">{inr.format(summary.oneTimeDue)}</p></div><ArrowRight className="h-5 w-5" />
                     </button>
                   )}
                 </div>

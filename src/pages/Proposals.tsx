@@ -255,6 +255,7 @@ export default function Proposals() {
       const accepted = proposals.find((p) => p.proposalCode === code) || null;
       if (accepted) setAcceptSuccess(accepted);
       load();
+      navigate(`/${division}/proposals/${code}`);
     } catch (e) {
       toast.error(friendlyAcceptError(e), { duration: 4000 });
     } finally {
